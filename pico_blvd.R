@@ -8,6 +8,8 @@ library(dplyr)
 library(tidyr)
 #used for loading/saving excel files
 library(readxl)
+#used for loading/saving excel files
+library(openxlsx)
 #contains analysis packages
 library(tidyverse)
 #used for maps and charts
@@ -52,6 +54,7 @@ county_fips <- "037"
 ###Demographic Profile###
 
 ##Population##
+#pull population table from ACS
 sex_by_age <- get_acs(
   geography = "tract",
   table = "B01001",
@@ -64,8 +67,10 @@ sex_by_age <- get_acs(
 )
 
 ##Age##
+#see sex_by_age
 
 ##Race and Ethnicity##
+#pull race  from ACS
 race <- get_acs(
   geography = "tract",
   table = "B02001",
@@ -76,6 +81,7 @@ race <- get_acs(
   geometry = TRUE
 )
 
+#pull ethnicity  from ACS
 ethnicity <- 
   get_acs(
     geography = "tract",
@@ -88,6 +94,7 @@ ethnicity <-
   )
 
 ##Median Income/Poverty##
+#pull income from ACS
 median_income <- 
   get_acs(
     geography = "tract",
@@ -99,6 +106,7 @@ median_income <-
     geometry = TRUE
   )
 
+#pull poverty level from ACS
 poverty_level <-
   get_acs(
     geography = "tract",
@@ -111,41 +119,249 @@ poverty_level <-
     )
   
 ##Employment Status##
+#pull employment status from acs
+employment_status <-
+  get_acs(
+    geography = "tract",
+    table = "B23025",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
 
 ##Gender##
+#see sex_by_age
+
 
 ##Family structure##
+#pull family structure
+family_structure <-
+  get_acs(
+    geography = "tract",
+    table = "B11003",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
 
 ###Language Access and Cultural Considerations###
 
 ##Limited English##
+#pull from acs
+language <-
+  get_acs(
+    geography = "tract",
+    table = "B16004",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
 
 ##Other languages spoken in the area##
+#see language
 
 ##Country of origin##
+#pull from acs
+country_origin <- 
+  get_acs(
+    geography = "tract",
+    table = "B05006",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
 
 ###Other Accessibility Considerations###
 
 ##Disability Status##
+#pull disability status
+disability <-
+  get_acs(
+    geography = "tract",
+    table = "B18101",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
+
+
+#pull hearing difficulty status
+hearing_diff <-
+  get_acs(
+    geography = "tract",
+    table = "B18102",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
+
+#pull vision difficulty status
+vision_diff <-
+  get_acs(
+    geography = "tract",
+    table = "B18103",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
 
 ##Irregular work hours##
+#pull hours worked data
+hrs_worked <-
+  get_acs(
+    geography = "tract",
+    table = "B23022",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
 
 ##Internet/Computer access##
+#pull internet data
+internet_subs <-
+  get_acs(
+    geography = "tract",
+    table = "B28002",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
+
+#pull computer access data
+tech_access <-
+  get_acs(
+    geography = "tract",
+    table = "B28001",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
 
 ###Housing & Displacement###
 
 ##Homeowners/Renters##
+#pull housing tenure data
+tenure <-   
+  get_acs(
+  geography = "tract",
+  table = "B25003",
+  state = state_fips,
+  county = county_fips,
+  year = 2023,
+  survey = "acs5",
+  geometry = TRUE,
+)
+
 
 ##Housing Cost Burden##
+#pull cost burden data
+#for renters
+renter_burden <-   
+  get_acs(
+    geography = "tract",
+    table = "B25070",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
+
+#for owners
+owner_burden <-   
+  get_acs(
+    geography = "tract",
+    table = "B25091",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
+
+##Disadvantaged communities##
+
+#load in CES disadvantaged community data
+ces_disadvantaged <- read.xlsx(file.path(file_path, "Data/Disadvantaged/sb535_tract_all_data.xlsx"))%>%
+  rename(GEOID = Census.Tract)
+
+#load in displacement risk
+displacement_risk <- read.csv(file.path(file_path, "Data/la_displacement_index.csv"))
 
 ###Transportation and Commuting###
 
 ##Car free and one car##
+#pull car data
+vehicles <-   
+  get_acs(
+    geography = "tract",
+    table = "B25044",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
 
 ##Method for commuting to work##
+#pull means of transportation data
+transportation_means <-   
+  get_acs(
+    geography = "tract",
+    table = "B08301",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
+
+#pull travel time data
+travel_time <-   
+  get_acs(
+    geography = "tract",
+    table = "B08303",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = TRUE,
+  )
 
 ##H+T Index metrics##
+#pull H+T data
+ht_index <- read.csv(file.path(file_path, "Data/htaindex2022_data_tracts_06.csv"))%>%
+  rename(GEOID = tract)%>%
+  mutate(GEOID = gsub('"', '', GEOID))%>%
+  mutate(GEOID = as.numeric(GEOID))
 
+#housing and transportation costs as percent of income
+
+#all transit performance score
+
+##Bike score
+
+##Collisions - not sure about best data here
 
 
 
