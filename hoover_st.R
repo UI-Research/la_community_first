@@ -9,22 +9,23 @@ library(dotenv)
 library(sf)
 library(urbnthemes)
 
+#test
 
 options(scipen=999)
 set_urbn_defaults(style="print")
 
 ####Load and Clean####
-setwd("C:/Users/GSamuels/Box/LA Transit project/Social Climate Analysis")
+file_path <- file.path("C:/Users/GSamuels/Box/LA Transit project/Social Climate Analysis")
 
 
 ###load in shapefiles###
 
 ##census tracts##
-CA_tracts <- st_read("Hoover/Mapping/CA_census_Tracts.shp")
+CA_tracts <- st_read(file.path(file_path, "Hoover/Mapping/CA_census_Tracts.shp"))
 la_tracts <- CA_tracts %>% filter(COUNTYFP == "037")
 
 ##hoover tracts##
-hoover_tracts <- st_read("Hoover/Mapping/hoover_buffer_census_tracts.shp")
+hoover_tracts <- st_read(file.path(file_path, "Hoover/Mapping/hoover_buffer_census_tracts.shp"))
 st_crs(hoover_tracts)
 hoover_tracts <- st_set_crs(hoover_tracts, 2229)
 
