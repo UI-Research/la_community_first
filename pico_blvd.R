@@ -71,21 +71,29 @@ sex_by_age <- get_acs(
   county = county_fips,
   year = 2023,
   survey = "acs5",
-  geometry = TRUE
+  geometry = FALSE
 )
 
 #restructure so that each row is a census tract
+##ADD geometry##
 age_wide_pico <- sex_by_age %>%
   select(GEOID, variable, estimate, moe) %>%
   filter(variable == "B01001_001", GEOID %in% pico_tracts$GEOID)%>%
   pivot_wider(names_from = variable, values_from = estimate)%>%
   rename(population = B01001_001)
 
+#add census tracts
+age_wide_pico <- left_join(pico_tracts, age_wide_pico, by = "GEOID")
+
+#confirm that this is a shapefile
+sf::st_geometry(age_wide_pico)
+
+
 #create a histogram
 population_histogram_pico <- ggplot(age_wide_pico, aes(x = population)) +
   geom_histogram(binwidth = 500) +
   labs(
-    title = "Population by Census Tract",
+    title = NULL,
     x = "Population",
     y = "Census Tracts"
   )
@@ -94,20 +102,18 @@ ggsave(file.path(file_path, "Pico/Outputs/population_histogram_pico.png"), width
 
 
 #add geometry from census tracts to create a map
-st_geometry(age_wide_pico) <- st_geometry(pico_tracts[match(age_wide_pico$GEOID, pico_tracts$GEOID), ])
-class(age_wide)
 
 #create map of population
-##TWEAK SO DARKER IS MORE##
-##SHOW FULL TRACTS, NOT JUST PARTS##
-##REMOVE LAT/LONG##
 population_map_pico <- ggplot(age_wide_pico) +
-  geom_sf(aes(fill = population)) +
-  labs(title = "Population by Census Tract")
-
-
+  geom_sf(aes(fill = population), show.legend = TRUE) + 
+  scale_fill_gradientn(
+    colors = palette_urbn_cyan[c(2, 4, 6, 7)],  # Selecting a subset of colors
+    name = "Population by Census Tract"  # Legend title
+  ) +
+  theme_urbn_map()  
 
 ggsave(file.path(file_path, "Pico/Outputs/population_map_pico.png"), width = 14, height = 6, dpi = 300)
+
 
 
 ##Age##
@@ -301,7 +307,7 @@ tech_access <-
     geometry = TRUE,
   )
 
-###Housing & Displacement### - Gabe
+###Housing & Displacement### - Teddy
 
 ##Homeowners/Renters##
 #pull housing tenure data

@@ -51,7 +51,7 @@ race_data <- get_acs(
   ),
   state = "CA",
   county = "Los Angeles",
-  geometry = TRUE
+  geometry = FALSE
 )
 
 #check and update crs to match what we have for hoover st 
