@@ -257,19 +257,69 @@ ggsave(file.path(file_path, "Pico/Outputs/disability_map_pico.png"), width = 14,
 
 
 ###pull hearing difficulty status
-hearing_diff <-
+hearing_diff <- 
   get_acs(
     geography = "tract",
-    table = "B18102",
+    variables = c(
+      total_pop = "B18102_001", 
+      v1="B18102_004", 
+      v2="B18102_007", 
+      v3="B18102_010", 
+      v4="B18102_013", 
+      v5="B18102_016", 
+      v6="B18102_019",
+      v7="B18102_023", 
+      v8="B18102_026", 
+      v9="B18102_029", 
+      v10="B18102_032", 
+      v11="B18102_035", 
+      v12="B18102_038"
+    ),
     state = state_fips,
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = FALSE, #change to TRUE if we decide to make a map
-  )
+    geometry = FALSE
+  ) %>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate)%>% #pivoting
+  mutate(
+    total_hearing_diff =v1+v2+v3+v4+v5+v6+v7+v8+v9+v10+v11+v12, #summing hearing diff by sex by age to get total population with hearing diff
+    share_hearing_diff = total_hearing_diff/total_pop)%>% #generating share of tract population with hearing diff
+  select(GEOID,total_pop,total_hearing_diff,share_hearing_diff)%>% #reducing df to necessary variables
+  filter(GEOID %in% pico_tracts$GEOID) #limiting to pico tracts
+
+#add geometry for map
+st_geometry(hearing_diff) <- st_geometry(pico_tracts[match(hearing_diff$GEOID, pico_tracts$GEOID), ])
+class(hearing_diff)
+
+#creating custom bins for a map of %pop w/ hearing diff
+map_hearing_diff <- hearing_diff%>% 
+  mutate(bin_hearing_diff = cut(share_hearing_diff, breaks=c(0,0.01, 0.03, 0.05,0.08),
+                              labels  = c("Less than 1%", "1-3%", "3-5%", "5% or higher"),
+                              include.lowest = TRUE))
+#making each bin a factor
+map_hearing_diff$bin_hearing_diff <- factor(map_hearing_diff$bin_hearing_diff, 
+                                             levels = c("Less than 1%", "1-3%", "3-5%", "5% or higher"))
+
+#plot map
+plot <-ggplot()+
+  geom_sf(map_hearing_diff, mapping = aes(fill = bin_hearing_diff), show.legend = TRUE) +
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = palette_urbn_cyan[c(1,3,5,7)], #can adjust the palette or color scheme as necessary
+    name = "Share of population with hearing difficulty, by census tract",
+    breaks = c("Less than 1%", "1-3%", "3-5%", "5% or higher")
+  )+
+  theme_urbn_map()
+
+print(plot) #view map
+
+ggsave(file.path(file_path, "Pico/Outputs/hearing_diff_map_pico.png"), width = 14, height = 6, dpi = 300)
 
 
-#pull vision difficulty status
+####pull vision difficulty status####
 vision_diff <-
   get_acs(
     geography = "tract",
