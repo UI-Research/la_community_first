@@ -19,10 +19,16 @@ library(geofacet)
 #used for shapefile functions
 library(sf)
 
+options(tigris_use_cache = TRUE)
+
+
 #used to pull urban theme template
 library(urbnthemes)
 options(scipen=999)
 set_urbn_defaults(style="print")
+
+#load in data dictionary for acs
+v23 <- load_variables(2023, "acs5", cache = TRUE)
 
 ####Load and Clean####
 #set personal file path to make it easier to pull data
@@ -38,9 +44,12 @@ file_path <- file.path("C:/Users/GSamuels/Box/LA Transit project/Social Climate 
 ##census tracts##
 CA_tracts <- st_read(file.path(file_path, "Hoover/Mapping/CA_census_Tracts.shp"))
 la_tracts <- CA_tracts %>% filter(COUNTYFP == "037")
+la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.shp"))
 
 #pico tracts
-pico_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"))
+pico_buffer_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"))
+pico_tracts <- la_shp%>%
+  filter(GEOID %in% pico_buffer_tracts$GEOID)
 
 #load in census api key
 #note - you will need to get a census api key to access this#
@@ -51,7 +60,7 @@ Sys.getenv("CENSUS_API_KEY")
 state_fips <- "06"
 county_fips <- "037"
 
-###Demographic Profile###
+###Demographic Profile### - Gabe
 
 ##Population##
 #pull population table from ACS
@@ -62,9 +71,44 @@ sex_by_age <- get_acs(
   county = county_fips,
   year = 2023,
   survey = "acs5",
-  geometry = TRUE,
-  cache_table = TRUE
+  geometry = TRUE
 )
+
+#restructure so that each row is a census tract
+age_wide_pico <- sex_by_age %>%
+  select(GEOID, variable, estimate, moe) %>%
+  filter(variable == "B01001_001", GEOID %in% pico_tracts$GEOID)%>%
+  pivot_wider(names_from = variable, values_from = estimate)%>%
+  rename(population = B01001_001)
+
+#create a histogram
+population_histogram_pico <- ggplot(age_wide_pico, aes(x = population)) +
+  geom_histogram(binwidth = 500) +
+  labs(
+    title = "Population by Census Tract",
+    x = "Population",
+    y = "Census Tracts"
+  )
+
+ggsave(file.path(file_path, "Pico/Outputs/population_histogram_pico.png"), width = 8, height = 6, dpi = 300)
+
+
+#add geometry from census tracts to create a map
+st_geometry(age_wide_pico) <- st_geometry(pico_tracts[match(age_wide_pico$GEOID, pico_tracts$GEOID), ])
+class(age_wide)
+
+#create map of population
+##TWEAK SO DARKER IS MORE##
+##SHOW FULL TRACTS, NOT JUST PARTS##
+##REMOVE LAT/LONG##
+population_map_pico <- ggplot(age_wide_pico) +
+  geom_sf(aes(fill = population)) +
+  labs(title = "Population by Census Tract")
+
+
+
+ggsave(file.path(file_path, "Pico/Outputs/population_map_pico.png"), width = 14, height = 6, dpi = 300)
+
 
 ##Age##
 #see sex_by_age
@@ -148,7 +192,7 @@ family_structure <-
     geometry = TRUE,
   )
 
-###Language Access and Cultural Considerations###
+###Language Access and Cultural Considerations### - Gabe
 
 ##Limited English##
 #pull from acs
@@ -257,7 +301,7 @@ tech_access <-
     geometry = TRUE,
   )
 
-###Housing & Displacement###
+###Housing & Displacement### - Gabe
 
 ##Homeowners/Renters##
 #pull housing tenure data
