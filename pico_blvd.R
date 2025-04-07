@@ -28,19 +28,22 @@ set_urbn_defaults(style="print")
 #set personal file path to make it easier to pull data
 
 #Gabe
-file_path <- file.path("C:/Users/GSamuels/Box/LA Transit project/Social Climate Analysis")
+#file_path <- file.path("C:/Users/GSamuels/Box/LA Transit project/Social Climate Analysis")
 
 #Teddy
-#file_path <- file.path("C:/Users/TMaginn/Box/LA Transit project/Social Climate Analysis")
+file_path <- file.path("C:/Users/TMaginn/Box/LA Transit project/Social Climate Analysis")
 
 ###load in shapefiles###
 
 ##census tracts##
 CA_tracts <- st_read(file.path(file_path, "Hoover/Mapping/CA_census_Tracts.shp"))
 la_tracts <- CA_tracts %>% filter(COUNTYFP == "037")
+la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.shp"))
 
 #pico tracts
-pico_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"))
+pico_buffer_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"))
+pico_tracts <- la_shp%>%
+  filter(GEOID %in% pico_buffer_tracts$GEOID)
 
 #load in census api key
 #note - you will need to get a census api key to access this#
@@ -51,7 +54,10 @@ Sys.getenv("CENSUS_API_KEY")
 state_fips <- "06"
 county_fips <- "037"
 
-###Demographic Profile###
+###load list of 2023 acs variables
+v23 <- load_variables(2023, "acs5", cache = TRUE)
+
+########################Demographic Profile#########################
 
 ##Population##
 #pull population table from ACS
@@ -62,9 +68,10 @@ sex_by_age <- get_acs(
   county = county_fips,
   year = 2023,
   survey = "acs5",
-  geometry = TRUE,
+  geometry = FALSE, #change to TRUE for maps
   cache_table = TRUE
 )
+
 
 ##Age##
 #see sex_by_age
@@ -78,7 +85,7 @@ race <- get_acs(
   county = county_fips,
   year = 2023,
   survey = "acs5",
-  geometry = TRUE
+  geometry = FALSE #change to TRUE for maps
 )
 
 #pull ethnicity  from ACS
@@ -90,7 +97,7 @@ ethnicity <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE
+    geometry = FALSE #change to TRUE for maps
   )
 
 ##Median Income/Poverty##
@@ -103,7 +110,7 @@ median_income <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE
+    geometry = FALSE #change to TRUE for maps
   )
 
 #pull poverty level from ACS
@@ -115,7 +122,7 @@ poverty_level <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE, #change to TRUE for maps
     )
   
 ##Employment Status##
@@ -128,7 +135,7 @@ employment_status <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE, #change to TRUE for maps
   )
 
 ##Gender##
@@ -145,10 +152,10 @@ family_structure <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE, #change to TRUE for maps
   )
 
-###Language Access and Cultural Considerations###
+##################Language Access and Cultural Considerations#######################
 
 ##Limited English##
 #pull from acs
@@ -160,7 +167,7 @@ language <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE, ##change to TRUE for map of other languages spoken
   )
 
 ##Other languages spoken in the area##
@@ -176,26 +183,80 @@ country_origin <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
-###Other Accessibility Considerations###
+########################Other Accessibility Considerations########################
 
 ##Disability Status##
-#pull disability status
-disability <-
+#pull disability status 
+disability <- 
   get_acs(
     geography = "tract",
-    table = "B18101",
+    variables = c(
+      total_pop = "B18101_001", 
+      v1="B18101_004", 
+      v2="B18101_007", 
+      v3="B18101_010", 
+      v4="B18101_013", 
+      v5="B18101_016", 
+      v6="B18101_019",
+      v7="B18101_023", 
+      v8="B18101_026", 
+      v9="B18101_029", 
+      v10="B18101_032", 
+      v11="B18101_035", 
+      v12="B18101_038"
+    ),
     state = state_fips,
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
-  )
+    geometry = FALSE
+  ) %>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate)%>% #pivoting so each tract is one row and each variable is one column
+  mutate(
+    total_disability =v1+v2+v3+v4+v5+v6+v7+v8+v9+v10+v11+v12, #summing diability by sex by age to get total population with disability by tract
+    share_disability = total_disability/total_pop)%>% #generating share of tract population with disability
+  select(GEOID,total_pop,total_disability,share_disability) #reducing df to necessary variables
+
+#binding with pico tracts to limit our data to the study area
+pico_disability <- disability %>%
+  filter(GEOID %in% pico_tracts$GEOID)
+
+#add geometry from census tracts to create a map
+st_geometry(pico_disability) <- st_geometry(pico_tracts[match(pico_disability$GEOID, pico_tracts$GEOID), ])
+class(pico_disability)
 
 
-#pull hearing difficulty status
+#creating custom bins for a map of %pop w/ disability
+map_disability_pico <- pico_disability%>% 
+  mutate(bin_disability = cut(share_disability, breaks=c(0,0.05, 0.1, 0.15, 0.21),
+                              labels  = c("Less than 5%", "5-10%", "10-15%", "15% or higher"),
+                              include.lowest = TRUE))
+#next, make each of the bins a factor
+map_disability_pico$bin_disability <- factor(map_disability_pico$bin_disability, 
+                                       levels = c("Less than 5%", "5-10%", "10-15%", "15% or higher"))
+
+#making the map
+plot <-ggplot()+
+  geom_sf(map_disability_pico, mapping = aes(fill = bin_disability), show.legend = TRUE) +
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = palette_urbn_cyan[c(1,3,5,7)], #can adjust the palette or color scheme as necessary
+    name = "Share of population with a disability, by census tract",
+    breaks = c("Less than 5%", "5-10%", "10-15%", "15% or higher")
+  )+
+  theme_urbn_map()
+
+print(plot) #view map
+
+ggsave(file.path(file_path, "Pico/Outputs/disability_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+
+###pull hearing difficulty status
 hearing_diff <-
   get_acs(
     geography = "tract",
@@ -204,8 +265,9 @@ hearing_diff <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE, #change to TRUE if we decide to make a map
   )
+
 
 #pull vision difficulty status
 vision_diff <-
@@ -216,7 +278,7 @@ vision_diff <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE, #change to TRUE if we decide to make a map
   )
 
 ##Irregular work hours##
@@ -229,7 +291,7 @@ hrs_worked <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 ##Internet/Computer access##
@@ -242,7 +304,7 @@ internet_subs <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE, #change back to TRUE to make a map
   )
 
 #pull computer access data
@@ -254,7 +316,7 @@ tech_access <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE, #change back to TRUE to make a map
   )
 
 ###Housing & Displacement###
@@ -269,7 +331,7 @@ tenure <-
   county = county_fips,
   year = 2023,
   survey = "acs5",
-  geometry = TRUE,
+  geometry = FALSE,
 )
 
 
@@ -284,7 +346,7 @@ renter_burden <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 #for owners
@@ -296,7 +358,7 @@ owner_burden <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 ##Disadvantaged communities##
@@ -320,7 +382,7 @@ vehicles <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 ##Method for commuting to work##
@@ -333,7 +395,7 @@ transportation_means <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 #pull travel time data
@@ -345,7 +407,7 @@ travel_time <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 ##H+T Index metrics##
