@@ -19,6 +19,9 @@ library(geofacet)
 #used for shapefile functions
 library(sf)
 
+#used for street data
+library(osmdata)
+
 options(tigris_use_cache = TRUE)
 
 
@@ -50,6 +53,20 @@ la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.s
 pico_buffer_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"))
 pico_tracts <- la_shp%>%
   filter(GEOID %in% pico_buffer_tracts$GEOID)
+
+#streets
+bbox <- st_bbox(pico_tracts)
+
+streets <- opq(bbox = bbox) %>%
+  add_osm_feature(key = "highway") %>%  # 'highway' includes roads, streets, etc.
+  osmdata_sf()
+
+#extract just streets
+streets_lines <- streets$osm_lines
+
+#filter to main streets
+major_streets <- streets_lines[streets_lines$highway %in% c("primary", "secondary", "tertiary"), ]
+
 
 #load in census api key
 #note - you will need to get a census api key to access this#
@@ -88,6 +105,8 @@ age_wide_pico <- left_join(pico_tracts, age_wide_pico, by = "GEOID")
 #confirm that this is a shapefile
 sf::st_geometry(age_wide_pico)
 
+#data - get the total population
+totalpop <- sum(age_wide_pico$population)
 
 #create a histogram
 population_histogram_pico <- ggplot(age_wide_pico, aes(x = population)) +
@@ -105,15 +124,20 @@ ggsave(file.path(file_path, "Pico/Outputs/population_histogram_pico.png"), width
 
 #create map of population
 population_map_pico <- ggplot(age_wide_pico) +
-  geom_sf(aes(fill = population), show.legend = TRUE) + 
+  geom_sf(aes(fill = population), show.legend = TRUE) +
+  #add the buffer overlay
+  #geom_sf(data = pico_buffer_tracts, color = "black", alpha = 0.2, lwd = 1) +
+  #add the street overlay
+  geom_sf(data = major_streets, color = "gray20", size = 0.3) +
   scale_fill_gradientn(
     colors = palette_urbn_cyan[c(2, 4, 6, 7)],  # Selecting a subset of colors
-    name = "Population by Census Tract"  # Legend title
+    name = "Population by Census Tract",
+    labels = scales::comma
   ) +
   theme_urbn_map()  
 
-ggsave(file.path(file_path, "Pico/Outputs/population_map_pico.png"), width = 14, height = 6, dpi = 300)
 
+ggsave(file.path(file_path, "Pico/Outputs/population_map_pico.png"), width = 14, height = 6, dpi = 300)
 
 
 ##Age##
