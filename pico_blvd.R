@@ -18,11 +18,13 @@ library(ggplot2)
 library(geofacet)
 #used for shapefile functions
 library(sf)
-
+#used for street lines
+library(osmdata)
 #used to pull urban theme template
 library(urbnthemes)
 options(scipen=999)
 set_urbn_defaults(style="print")
+
 
 ####Load and Clean####
 #set personal file path to make it easier to pull data
@@ -44,6 +46,18 @@ la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.s
 pico_buffer_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"))
 pico_tracts <- la_shp%>%
   filter(GEOID %in% pico_buffer_tracts$GEOID)
+
+#streets
+bbox <- st_bbox(pico_tracts)
+streets <- opq(bbox = bbox) %>%
+  add_osm_feature(key = "highway") %>%  # 'highway' includes roads, streets, etc.
+  osmdata_sf()
+#extract just streets
+streets_lines <- streets$osm_lines
+#filter to main streets
+major_streets <- streets_lines[streets_lines$highway %in% c("primary", "secondary", "tertiary"), ]
+major_streets <- st_transform(major_streets, st_crs(pico_tracts)) #transform CRS
+major_streets_clipped <- st_intersection(major_streets, st_union(st_geometry(pico_tracts))) #restricting streets to census tract boundaries
 
 #load in census api key
 #note - you will need to get a census api key to access this#
@@ -242,7 +256,8 @@ map_disability_pico$bin_disability <- factor(map_disability_pico$bin_disability,
 #making the map
 plot <-ggplot()+
   geom_sf(map_disability_pico, mapping = aes(fill = bin_disability), show.legend = TRUE) +
-  geom_sf(data = pico_buffer_tracts, color = "black", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   theme(plot.title.position = "plot",
         plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
@@ -306,7 +321,8 @@ map_hearing_diff$bin_hearing_diff <- factor(map_hearing_diff$bin_hearing_diff,
 #plot map
 plot <-ggplot()+
   geom_sf(map_hearing_diff, mapping = aes(fill = bin_hearing_diff), show.legend = TRUE) +
-  geom_sf(data = pico_buffer_tracts, color = "black", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   theme(plot.title.position = "plot",
         plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
@@ -370,7 +386,8 @@ map_vision_diff$bin_vision_diff <- factor(map_vision_diff$bin_vision_diff,
 #plot map
 plot <-ggplot()+
   geom_sf(map_vision_diff, mapping = aes(fill = bin_vision_diff), show.legend = TRUE) +
-  geom_sf(data = pico_buffer_tracts, color = "black", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   theme(plot.title.position = "plot",
         plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
@@ -437,7 +454,8 @@ map_no_int$bin_no_int <- factor(map_no_int$bin_no_int,
 #plot map
 plot <-ggplot()+
   geom_sf(map_no_int, mapping = aes(fill = bin_no_int), show.legend = TRUE) +
-  geom_sf(data = pico_buffer_tracts, color = "black", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   theme(plot.title.position = "plot",
         plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
@@ -493,12 +511,13 @@ map_tech_access$bin_no_computer <- factor(map_tech_access$bin_no_computer,
 #plot map
 plot <-ggplot()+
   geom_sf(map_tech_access, mapping = aes(fill = bin_no_computer), show.legend = TRUE) +
-  geom_sf(data = pico_buffer_tracts, color = "black", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   theme(plot.title.position = "plot",
         plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,3,6,8)], #can adjust the palette or color scheme as necessary
-    name = "Share of households without access to a computer",
+    name = "Share of households without access to a device",
     breaks = c("Less than 1%", "1-5%", "5-10%", "10% or higher")
   )+
   theme_urbn_map()
@@ -555,47 +574,222 @@ tech_sums_long <- tech_sums %>% #selecting columns we want
   select(share_computer, share_smartphone, share_tablet, share_no_computer) %>%
   pivot_longer(cols = everything(), names_to = "device_type", values_to = "share") 
 
-# Create the bar chart
-ggplot(tech_sums_long, aes(x = device_type, y = share)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  theme_minimal() +
-  labs(title = "Share of Total Population by Device Access Type",
-       x = "Device Access Type",
-       y = "Share of Total Population") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# Reorder the device_type factor to the custom order with smartphone and computer swapped
+tech_sums_long$device_type <- factor(tech_sums_long$device_type, 
+                                     levels = c("share_computer", "share_smartphone", "share_tablet", "share_no_computer"))  # Custom order
+
+# Now plot the data
+ggplot(tech_sums_long) +
+  geom_col(mapping = aes(x=device_type, y = share), position = "dodge") +
+  geom_text(aes(x = device_type, y = share, label = scales::percent(share, accuracy = 0.01)), 
+            vjust = -0.5, size = 3, family = "Lato") +  # Add labels above the bars
+  labs(
+    x = "Device Access Type",
+    y = "Share of Total Population") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0, 1), breaks = c(.25, .5, .75)) +
+  scale_x_discrete(labels = c(
+    "share_computer" = "Access to laptop or desktop computer", 
+    "share_no_computer" = "No access to any device", 
+    "share_smartphone" = "Access to smartphone",
+    "share_tablet" = "Access to tablet or other mobile device"
+  )) +
+  theme(
+    legend.position="top",
+    legend.text = element_text(size=9.5, family="Lato"),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.x = element_text(size=8.5, family="Lato"),
+    axis.text.y = element_text(size=8.5, family="Lato")
+  )
+
+#saving
+ggsave(file.path(file_path, "Pico/Outputs/tech_access_bar_pico.png"),  width = 8, height = 2.5)                       
+  
+  
 
 
-###Housing & Displacement###
 
-##Homeowners/Renters##
+##################### Housing & Displacement #############################
+
+### Homeowners/Renters ###
 #pull housing tenure data
 tenure <-   
   get_acs(
   geography = "tract",
-  table = "B25003",
+  variables = c(
+    total_occupied = "B25003_001",
+    owner_occupied = "B25003_002",
+    renter_occupied = "B25003_003"
+  ),
   state = state_fips,
   county = county_fips,
   year = 2023,
   survey = "acs5",
   geometry = FALSE,
-)
+)%>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate)%>% #pivoting
+  mutate(
+    share_owner_occupied = owner_occupied/total_occupied,
+    share_renter_occupied = renter_occupied/total_occupied)%>% #generating shares of HU that are owner/renter occupied
+  select(GEOID,total_occupied,owner_occupied,share_owner_occupied, renter_occupied, share_renter_occupied)%>% #reducing df to necessary variables
+  filter(GEOID %in% pico_tracts$GEOID) #limiting to pico tracts
+
+
+
+#adding geometry for map
+st_geometry(tenure) <- st_geometry(pico_tracts[match(tenure$GEOID, pico_tracts$GEOID), ])
+class(tenure)
+
+#creating custom bins for a map of share of occupied HU that are renter
+map_tenure <- tenure%>% 
+  mutate(bin_tenure = cut(share_renter_occupied, breaks=c(0.5, 0.6, 0.7,0.8,0.9,1),
+                          labels  = c("50-60%", "60-70%", "70-80%", "80-90%", "90-100%"),
+                          include.lowest = TRUE))
+#making each bin a factor
+map_tenure$bin_tenure <- factor(map_tenure$bin_tenure, 
+                                levels =c("50-60%", "60-70%", "70-80%", "80-90%", "90-100%"))
+
+#plot map
+plot <-ggplot()+
+  geom_sf(map_tenure, mapping = aes(fill = bin_tenure), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = palette_urbn_quintile[], #can adjust the palette or color scheme as necessary
+    name = "Share of occupied housing units that are rented",
+    breaks = c("50-60%", "60-70%", "70-80%", "80-90%", "90-100%")
+  )+
+  theme_urbn_map()
+
+print(plot) #view map
+
+ggsave(file.path(file_path, "Pico/Outputs/share_renter_occupied_map_pico.png"), width = 14, height = 6, dpi = 300)
+
 
 
 ##Housing Cost Burden##
 #pull cost burden data
-#for renters
+
+### for renters
 renter_burden <-   
   get_acs(
     geography = "tract",
-    table = "B25070",
+    variables = c(
+      total = "B25070_001",
+      spend_30_35 = "B25070_007",
+      spend_35_40 = "B25070_008",
+      spend_40_50="B25070_009",
+      spend_50_more = "B25070_010",
+      median_share_inc_housing = "B25071_001"
+    ),
     state = state_fips,
     county = county_fips,
     year = 2023,
     survey = "acs5",
     geometry = FALSE,
-  )
+  )%>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate)%>% #pivoting
+  mutate(
+    total_over_30 = (spend_30_35 + spend_35_40+spend_40_50 + spend_50_more),
+    share_over_30 = (spend_30_35 + spend_35_40+spend_40_50 + spend_50_more)/total,
+    share_over_50 = spend_50_more/total)%>% #generating shares of HH that are rent burdened and extremely rent burdened
+  select(GEOID,total,spend_50_more,total_over_30,share_over_30,share_over_50,median_share_inc_housing)%>% #reducing df to necessary variables
+  filter(GEOID %in% pico_tracts$GEOID) #limiting to pico tracts
 
-#for owners
+#adding geometry for map
+st_geometry(renter_burden) <- st_geometry(pico_tracts[match(renter_burden$GEOID, pico_tracts$GEOID), ])
+class(renter_burden)
+
+## first, map out the median income spent on housing by census tract
+#making bins
+map_med_inc_housing <- renter_burden%>%
+  mutate(bin_median_share = cut(median_share_inc_housing, breaks=c(25, 30, 35, 40, 45, 50),
+                                labels = c("less than 30%", "30-35%", "35-40%", "40-45%", "45-50%"),
+                                include.lowest = TRUE))
+#make each bin a factor
+map_med_inc_housing$bin_median_share <- factor(map_med_inc_housing$bin_median_share,
+                                               levels = c("less than 30%", "30-35%", "35-40%", "40-45%", "45-50%"))
+#plotting
+plot <-ggplot()+
+  geom_sf(map_med_inc_housing, mapping = aes(fill = bin_median_share), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "black", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = palette_urbn_diverging[c(5,4,3,2,1)], #can adjust the palette or color scheme as necessary
+    name = "Median share of income spent on housing",
+    breaks = c("less than 30%", "30-35%", "35-40%", "40-45%", "45-50%")
+  )+
+  theme_urbn_map()
+
+print(plot) #view map
+
+ggsave(file.path(file_path, "Pico/Outputs/med_share_inc_housing_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+
+## next, map out the share of individuals spending more than 30% of income on rental housing
+#making bins
+map_30_pct <- renter_burden%>%
+  mutate(bin_30_pct = cut(share_over_30, breaks=c(.30, .40, .50, .60, .70, .80),
+                                labels = c("less than 40%", "40-50%", "50-60%", "60-70%", "70-80%"),
+                                include.lowest = TRUE))
+#make each bin a factor
+map_30_pct$bin_30_pct <- factor(map_30_pct$bin_30_pct,
+                                               levels = c("less than 40%", "40-50%", "50-60%", "60-70%", "70-80%"))
+#plotting
+plot <-ggplot()+
+  geom_sf(map_30_pct, mapping = aes(fill = bin_30_pct), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = palette_urbn_red[c(1,2,4,6,8)], #can adjust the palette or color scheme as necessary
+    name = "Share of renters spending more than 30% of income on housing",
+    breaks = c("less than 40%", "40-50%", "50-60%", "60-70%", "70-80%")
+  )+
+  theme_urbn_map()
+
+print(plot) #view map
+
+ggsave(file.path(file_path, "Pico/Outputs/rent_burdened_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+
+## repeating for share severaly rent burdened (spending over 50% income on housing)
+#making bins
+map_50_pct <- renter_burden%>%
+  mutate(bin_50_pct = cut(share_over_50, breaks=c(.20, .25, .30, .35, .40, .45),
+                          labels = c("less than 25%", "25-30%", "30-35%", "35-40%", "40% or higher"),
+                          include.lowest = TRUE))
+#make each bin a factor
+map_50_pct$bin_50_pct <- factor(map_50_pct$bin_50_pct,
+                                levels = c("less than 25%", "25-30%", "30-35%", "35-40%", "40% or higher"))
+#plotting
+plot <-ggplot()+
+  geom_sf(map_50_pct, mapping = aes(fill = bin_50_pct), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = palette_urbn_red[c(1,2,4,6,7,8)], #can adjust the palette or color scheme as necessary
+    name = "Share of renters spending more than 50% of income on housing",
+    breaks = c("less than 25%", "25-30%", "30-35%", "35-40%", "40% or higher")
+  )+
+  theme_urbn_map()
+
+print(plot) #view map
+
+ggsave(file.path(file_path, "Pico/Outputs/severely_rent_burdened_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+
+
+### for owners
 owner_burden <-   
   get_acs(
     geography = "tract",
