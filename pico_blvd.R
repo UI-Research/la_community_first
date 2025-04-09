@@ -55,8 +55,9 @@ pico_tracts <- la_shp%>%
   filter(GEOID %in% pico_buffer_tracts$GEOID)
 
 #streets
+#create specific set of streets we want to see
 bbox <- st_bbox(pico_tracts)
-
+#load in
 streets <- opq(bbox = bbox) %>%
   add_osm_feature(key = "highway") %>%  # 'highway' includes roads, streets, etc.
   osmdata_sf()
@@ -65,7 +66,12 @@ streets <- opq(bbox = bbox) %>%
 streets_lines <- streets$osm_lines
 
 #filter to main streets
-major_streets <- streets_lines[streets_lines$highway %in% c("primary", "secondary", "tertiary"), ]
+major_streets <- streets_lines %>%
+  filter(highway %in% c("primary", "secondary", "tertiary")) %>%
+  st_transform(st_crs(pico_tracts))
+
+#create a version that clips the streets to the focus area
+major_streets_clipped <- st_intersection(major_streets, st_union(st_geometry(pico_tracts)))
 
 
 #load in census api key
@@ -91,16 +97,19 @@ sex_by_age <- get_acs(
   geometry = FALSE
 )
 
+write.csv(sex_by_age, file.path(file_path, "Fileshare", "sex_by_age.csv"), row.names = FALSE)
+
 #restructure so that each row is a census tract
 ##ADD geometry##
-age_wide_pico <- sex_by_age %>%
+pop_wide_pico <- sex_by_age %>%
   select(GEOID, variable, estimate, moe) %>%
   filter(variable == "B01001_001", GEOID %in% pico_tracts$GEOID)%>%
   pivot_wider(names_from = variable, values_from = estimate)%>%
   rename(population = B01001_001)
 
+
 #add census tracts
-age_wide_pico <- left_join(pico_tracts, age_wide_pico, by = "GEOID")
+pop_wide_pico <- left_join(pico_tracts, pop_wide_pico, by = "GEOID")
 
 #confirm that this is a shapefile
 sf::st_geometry(age_wide_pico)
@@ -109,7 +118,7 @@ sf::st_geometry(age_wide_pico)
 totalpop <- sum(age_wide_pico$population)
 
 #create a histogram
-population_histogram_pico <- ggplot(age_wide_pico, aes(x = population)) +
+population_histogram_pico <- ggplot(pop_wide_pico, aes(x = population)) +
   geom_histogram(binwidth = 500) +
   labs(
     title = NULL,
@@ -119,22 +128,27 @@ population_histogram_pico <- ggplot(age_wide_pico, aes(x = population)) +
 
 ggsave(file.path(file_path, "Pico/Outputs/population_histogram_pico.png"), width = 8, height = 6, dpi = 300)
 
-
 #add geometry from census tracts to create a map
 
 #create map of population
-population_map_pico <- ggplot(age_wide_pico) +
+population_map_pico <- ggplot(pop_wide_pico) +
   geom_sf(aes(fill = population), show.legend = TRUE) +
   #add the buffer overlay
-  #geom_sf(data = pico_buffer_tracts, color = "black", alpha = 0.2, lwd = 1) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
   #add the street overlay
-  geom_sf(data = major_streets, color = "gray20", size = 0.3) +
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
   scale_fill_gradientn(
     colors = palette_urbn_cyan[c(2, 4, 6, 7)],  # Selecting a subset of colors
     name = "Population by Census Tract",
     labels = scales::comma
   ) +
-  theme_urbn_map()  
+  theme_urbn_map()+  
+  theme(
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 16),
+    legend.key.height = unit(1.2, "cm"),
+    legend.key.width = unit(0.6, "cm")
+  )  
 
 
 ggsave(file.path(file_path, "Pico/Outputs/population_map_pico.png"), width = 14, height = 6, dpi = 300)
@@ -142,6 +156,68 @@ ggsave(file.path(file_path, "Pico/Outputs/population_map_pico.png"), width = 14,
 
 ##Age##
 #see sex_by_age
+
+#create bins of different age groups, based on census data dictionary (v23)
+age_bins <- list(
+  age_0_17  = c("B01001_003", "B01001_004", "B01001_005", "B01001_006",
+                "B01001_027", "B01001_028", "B01001_029", "B01001_030"),
+  age_18_34 = c("B01001_007", "B01001_008", "B01001_009", "B01001_010", "B01001_011", "B01001_012", 
+                "B01001_031", "B01001_032", "B01001_033","B01001_034", "B01001_035", "B01001_036"),
+  age_35_64 = c("B01001_013", "B01001_014", "B01001_015", "B01001_016", "B01001_017", "B01001_018", "B01001_019", 
+                "B01001_037", "B01001_038", "B01001_039", "B01001_040", "B01001_041", "B01001_042", "B01001_043"),
+  age_65_up = c("B01001_020", "B01001_021", "B01001_022", "B01001_023", "B01001_024", "B01001_025",
+                "B01001_044", "B01001_041", "B01001_042", "B01001_043", "B01001_044", "B01001_045")
+)
+
+
+#summarise total by age, for each tract
+age_wide_pico <- sex_by_age %>%
+  filter(variable %in% unlist(age_bins), GEOID %in% pico_tracts$GEOID)%>%
+  group_by(GEOID)%>%
+  mutate(age_group = case_when(
+    variable %in% age_bins$age_0_17 ~ "age_0_18",
+    variable %in% age_bins$age_18_34 ~ "age_19_34",
+    variable %in% age_bins$age_35_64 ~ "age_35_64",
+    variable %in% age_bins$age_65_up ~ "age_65_up"
+  )) %>%
+  group_by(GEOID, age_group)%>%
+  summarise(population = sum(estimate, na.rm = TRUE), .groups = "drop")%>%
+  pivot_wider(names_from = age_group, values_from = population)
+
+#calculate the total age 
+age_totals <- age_wide_pico %>%
+  summarise(across(starts_with("age_"), ~sum(.x, na.rm = TRUE))) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "age_group",
+    values_to = "population"
+  )
+
+#create a bar chart
+pop_by_age_group <- ggplot(age_totals, aes(x = age_group, y = population, fill = age_group)) +
+  geom_col() +
+  labs(
+    x = "Age Group",
+    y = "Population"
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "age_0_18" = "0-18", 
+      "age_19_34" = "19-34", 
+      "age_35_64" = "35-64", 
+      "age_65_up" = "65+"
+    ))+
+  scale_y_continuous(labels = scales::comma) +
+  theme(legend.position = "none")+
+  theme(
+  axis.title.x = element_text(size = 14),
+  axis.title.y = element_text(size = 14),
+  axis.text.x = element_text(size = 16),
+  axis.text.y = element_text(size = 16))
+
+  
+
+ggsave(file.path(file_path, "Pico/Outputs/age_chart_pico.png"), width = 14, height = 6, dpi = 300)
 
 ##Race and Ethnicity##
 #pull race  from ACS
@@ -152,8 +228,10 @@ race <- get_acs(
   county = county_fips,
   year = 2023,
   survey = "acs5",
-  geometry = TRUE
+  geometry = FALSE
 )
+
+write.csv(race, file.path(file_path, "Fileshare", "race.csv"), row.names = FALSE)
 
 #pull ethnicity  from ACS
 ethnicity <- 
@@ -166,6 +244,8 @@ ethnicity <-
     survey = "acs5",
     geometry = TRUE
   )
+
+write.csv(ethnicity, file.path(file_path, "Fileshare", "ethnicity.csv"), row.names = FALSE)
 
 ##Median Income/Poverty##
 #pull income from ACS
@@ -180,6 +260,9 @@ median_income <-
     geometry = TRUE
   )
 
+write.csv(median_income, file.path(file_path, "Fileshare", "median_income.csv"), row.names = FALSE)
+
+
 #pull poverty level from ACS
 poverty_level <-
   get_acs(
@@ -191,7 +274,10 @@ poverty_level <-
     survey = "acs5",
     geometry = TRUE,
     )
-  
+
+write.csv(poverty_level, file.path(file_path, "Fileshare", "poverty_level.csv"), row.names = FALSE)
+
+
 ##Employment Status##
 #pull employment status from acs
 employment_status <-
@@ -204,6 +290,9 @@ employment_status <-
     survey = "acs5",
     geometry = TRUE,
   )
+
+write.csv(employment_status, file.path(file_path, "Fileshare", "employment_status.csv"), row.names = FALSE)
+
 
 ##Gender##
 #see sex_by_age
@@ -222,6 +311,8 @@ family_structure <-
     geometry = TRUE,
   )
 
+write.csv(family_structure, file.path(file_path, "Fileshare", "family_structure.csv"), row.names = FALSE)
+
 ###Language Access and Cultural Considerations### - Gabe
 
 ##Limited English##
@@ -236,6 +327,9 @@ language <-
     survey = "acs5",
     geometry = TRUE,
   )
+
+write.csv(language, file.path(file_path, "Fileshare", "language.csv"), row.names = FALSE)
+
 
 ##Other languages spoken in the area##
 #see language
@@ -253,7 +347,10 @@ country_origin <-
     geometry = TRUE,
   )
 
-###Other Accessibility Considerations###
+write.csv(country_origin, file.path(file_path, "Fileshare", "country_origin.csv"), row.names = FALSE)
+
+
+###Other Accessibility Considerations### - Teddy
 
 ##Disability Status##
 #pull disability status
@@ -265,7 +362,7 @@ disability <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 
@@ -328,7 +425,7 @@ tech_access <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 ###Housing & Displacement### - Teddy
