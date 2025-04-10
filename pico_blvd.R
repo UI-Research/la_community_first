@@ -1055,6 +1055,28 @@ displacement_risk %>%
 #saving
 ggsave(file.path(file_path, "Pico/Outputs/displacement_risk_bar_pico.png"),  width = 8, height = 2.5) 
 
+#now map out displacement risk using a heat map -ignore for now
+plot <- ggplot() +
+  geom_sf(displacement_risk, mapping = aes(fill = Typology, show.legend = TRUE)) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) +
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) +
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = c(
+      "Advanced Gentrification" = palette_urbn_diverging[2],
+      "At Risk of Gentrification" = palette_urbn_diverging[4],
+      "Early/Ongoing Gentrification" = palette_urbn_diverging[3],
+      "Low-Income/Susceptible to Displacement" = palette_urbn_diverging[5],
+      "Ongoing Displacement" = palette_urbn_diverging[1],
+      "Stable Moderate/Mixed Income" = palette_urbn_diverging[6]
+    ),
+    name = "Displacement Risk"
+  ) +
+  theme_urbn_map()
+
+print(plot)
+
 
 ###Transportation and Commuting###
 
