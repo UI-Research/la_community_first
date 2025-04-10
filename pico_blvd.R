@@ -401,6 +401,60 @@ print(plot) #view map
 
 ggsave(file.path(file_path, "Pico/Outputs/vision_diff_map_pico.png"), width = 14, height = 6, dpi = 300)
 
+## ambulatory difficulty ##
+ambulatory_diff <-
+  get_acs(
+    geography = "tract",
+    table = "B18105",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = FALSE,
+  )%>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate)%>% #pivoting
+  mutate(
+    total =B18105_001,
+    total_ambulatory_diff = (B18105_004 + B18105_007 + B18105_010 + B18105_013 + B18105_016 +
+      B18105_020 + B18105_023 + B18105_026 + B18105_029 + B18105_032),
+    share_ambulatory_diff = total_ambulatory_diff/total
+  )%>%
+  select(GEOID,total, total_ambulatory_diff, share_ambulatory_diff)%>% #reducing df to necessary variables
+  filter(GEOID %in% pico_tracts$GEOID) #limiting to pico tracts
+
+#write.csv(ambulatory_diff, file.path(file_path, "Fileshare", "ambulatory_diff.csv"), row.names = FALSE) ###ignore this line
+
+#add geometry for map
+st_geometry(ambulatory_diff) <- st_geometry(pico_tracts[match(ambulatory_diff$GEOID, pico_tracts$GEOID), ])
+class(ambulatory_diff)
+
+#creating custom bins for # of individuals w/ ambulatory diff by tract
+map_amb_diff <- ambulatory_diff%>% 
+  mutate(bin_amb_diff = cut(total_ambulatory_diff, breaks=c(0,50,100,200, 300,500),
+                               labels  = c("Fewer than 50", "50-100", "100-200", "200-300", "300 or more"),
+                               include.lowest = TRUE))
+#making each bin a factor
+map_amb_diff$bin_amb_diff <- factor(map_amb_diff$bin_amb_diff, 
+                                          levels = c("Fewer than 50", "50-100", "100-200", "200-300", "300 or more"))
+
+#plot map
+plot <-ggplot()+
+  geom_sf(map_amb_diff, mapping = aes(fill = bin_amb_diff), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = palette_urbn_cyan[c(1,3,5,7,8)], #can adjust the palette or color scheme as necessary
+    name = "Number of individuals with ambulatory difficulty",
+    breaks = c("Fewer than 50", "50-100", "100-200", "200-300", "300 or more")
+  )+
+  theme_urbn_map()
+
+print(plot) #view map
+
+ggsave(file.path(file_path, "Pico/Outputs/ambulatory_diff_map_pico.png"), width = 14, height = 6, dpi = 300)
 
 
 
@@ -793,22 +847,214 @@ ggsave(file.path(file_path, "Pico/Outputs/severely_rent_burdened_map_pico.png"),
 owner_burden <-   
   get_acs(
     geography = "tract",
-    table = "B25091",
+    variables = c(
+      median_owner_costs_share_inc = "B25092_001"
+    ),
     state = state_fips,
     county = county_fips,
     year = 2023,
     survey = "acs5",
     geometry = FALSE,
+  ) %>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>% # pivoting
+  select(GEOID, median_owner_costs_share_inc) %>% # reducing df to necessary variables
+  filter(GEOID %in% pico_tracts$GEOID) # limiting to pico tracts
+
+# adding geometry for map
+st_geometry(owner_burden) <- st_geometry(pico_tracts[match(owner_burden$GEOID, pico_tracts$GEOID), ])
+class(owner_burden)
+
+# categorize into bins and label NA values
+map_owner_cost_burden <- owner_burden %>%
+  mutate(bin_median_share = cut(median_owner_costs_share_inc, breaks = c(0, 20, 30, 100),
+                                labels = c("less than 20%", "20-30%", "30% or higher"),
+                                include.lowest = TRUE)) %>%
+  mutate(bin_median_share = as.character(bin_median_share),
+         bin_median_share = ifelse(is.na(bin_median_share), "No data", bin_median_share),
+         bin_median_share = factor(bin_median_share, 
+                                   levels = c("less than 20%", "20-30%", "30% or higher", "No data")))
+
+# plotting
+plot <- ggplot() +
+  geom_sf(map_owner_cost_burden, mapping = aes(fill = bin_median_share), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "black", alpha = 0, lwd = 1) + # transparent buffer zone
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + # streets
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = c(
+      "less than 20%" = palette_urbn_diverging[6],
+      "20-30%" = palette_urbn_diverging[4],
+      "30% or higher" = palette_urbn_diverging[2],
+      "No data" = "gray80"  # na color
+    ),
+    name = "Median share of income spent on housing",
+    breaks = c("less than 20%", "20-30%", "30% or higher", "No data"),
+    na.value = "gray80",  # color for NA areas on the map
+    guide = guide_legend(override.aes = list(alpha = 1))  # making sure NA values show in legend
+  ) +
+  theme_urbn_map()
+
+print(plot)
+
+
+ggsave(file.path(file_path, "Pico/Outputs/owner_med_share_inc_housing_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+#do this for share of HH rent burdened (not median)
+owner_burden <-   
+  get_acs(
+    geography = "tract",
+    variables = c(
+      total = "B25091_001",
+      total_mortgatge = "B25091_002",
+      total_30_35_mort = "B25091_008",
+      total_35_40_mort = "B25091_009",
+      total_40_50_mort = "B25091_010",
+      total_50_plus_mort = "B25091_011",
+      total_no_mort = "B25091_013",
+      total_30_35_no_mort = "B25091_019",
+      total_35_40_no_mort = "B25091_020",
+      total_40_50_no_mort = "B25091_021",
+      total_50_plus_no_mort = "B25091_022"
+      
+    ),
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = FALSE,
+  ) %>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>% # pivoting
+  mutate(
+    total_30_plus = (total_30_35_mort + total_35_40_mort + total_40_50_mort + total_50_plus_mort + 
+                       total_30_35_no_mort + total_35_40_no_mort + total_40_50_no_mort+ total_50_plus_no_mort),
+    total_50_plus = (total_50_plus_mort + total_50_plus_no_mort),
+    share_30_plus = (total_30_plus/total),
+    share_50_plus = (total_50_plus/total)
+  )%>%
+  select(GEOID, total, total_30_plus, total_50_plus, share_30_plus, share_50_plus) %>% # reducing df to necessary variables
+  filter(GEOID %in% pico_tracts$GEOID) # limiting to pico tracts
+
+# adding geometry for map
+st_geometry(owner_burden) <- st_geometry(pico_tracts[match(owner_burden$GEOID, pico_tracts$GEOID), ])
+class(owner_burden)
+
+# categorize into bins and assign "No data" to NA values
+map_owner_cost_burden <- owner_burden %>%
+  mutate(
+    bin_share_30 = cut(share_30_plus, breaks = c(0, .20, .40, .60, .80, 1),
+                       labels = c("less than 20%", "20-40%", "40-60%", "60-80%", "80-100%"),
+                       include.lowest = TRUE),
+    bin_share_30 = as.character(bin_share_30),  # convert to character to add custom label
+    bin_share_30 = ifelse(is.na(bin_share_30), "No data", bin_share_30),  # replace NA with label
+    bin_share_30 = factor(bin_share_30, levels = c("less than 20%", "20-40%", "40-60%", "60-80%", "80-100%", "No data"))
   )
 
-##Disadvantaged communities##
+# plotting
+plot <- ggplot() +
+  geom_sf(map_owner_cost_burden, mapping = aes(fill = bin_share_30), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) +
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) +
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = c(
+      "less than 20%" = palette_urbn_red[1],
+      "20-40%" = palette_urbn_red[2],
+      "40-60%" = palette_urbn_red[5],
+      "60-80%" = palette_urbn_red[7],
+      "80-100%" = palette_urbn_red[8],
+      "No data" = "gray80"
+    ),
+    name = "Share of households spending more than 30% of income on housing - owner-occupied units"
+  ) +
+  guides(fill = guide_legend(override.aes = list(color = NA))) +
+  theme_urbn_map()
+
+print(plot)
+
+ggsave(file.path(file_path, "Pico/Outputs/owner_share_inc_housing_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+## repeating for share of people spending more than 50% of income on housing costs - owner occupied
+# categorize into bins and assign "No data" to NA values
+map_owner_cost_burden <- owner_burden %>%
+  mutate(
+    bin_share_50 = cut(share_50_plus, breaks = c(0, .20, .40, .60, .80, 1),
+                       labels = c("less than 20%", "20-40%", "40-60%", "60-80%", "80-100%"),
+                       include.lowest = TRUE),
+    bin_share_50 = as.character(bin_share_50),  # convert to character to add custom label
+    bin_share_50 = ifelse(is.na(bin_share_50), "No data", bin_share_50),  # replace NA with label
+    bin_share_50 = factor(bin_share_50, levels = c("less than 20%", "20-40%", "40-60%", "60-80%", "80-100%", "No data"))
+  )
+
+# plotting
+plot <- ggplot() +
+  geom_sf(map_owner_cost_burden, mapping = aes(fill = bin_share_50), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) +
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) +
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = c(
+      "less than 20%" = palette_urbn_red[1],
+      "20-40%" = palette_urbn_red[2],
+      "40-60%" = palette_urbn_red[5],
+      "60-80%" = palette_urbn_red[7],
+      "80-100%" = palette_urbn_red[8],
+      "No data" = "gray80"
+    ),
+    name = "Share of households spending more than 50% of income on housing - owner-occupied units"
+  ) +
+  guides(fill = guide_legend(override.aes = list(color = NA))) +
+  theme_urbn_map()
+
+print(plot)
+
+ggsave(file.path(file_path, "Pico/Outputs/owner_share_severe_rent_burden_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+
+
+####Disadvantaged communities ####
 
 #load in CES disadvantaged community data
-ces_disadvantaged <- read.xlsx(file.path(file_path, "Data/Disadvantaged/sb535_tract_all_data.xlsx"))%>%
-  rename(GEOID = Census.Tract)
+ces_disadvantaged <- read.xlsx(file.path(file_path, "Data/Disadvantaged/sb535_tract_all_data.xlsx")) %>%
+  rename(GEOID = Census.Tract) %>%
+  mutate(GEOID = str_pad(GEOID, width = 11, pad = "0"))%>% #need to add a leading zero to match GEOID structure
+  filter(GEOID %in% pico_tracts$GEOID) #limiting to pico tracts
 
-#load in displacement risk
-displacement_risk <- read.csv(file.path(file_path, "Data/la_displacement_index.csv"))
+### 40 of 46 Pico tracts are disadvantaged
+
+
+###load in displacement risk
+displacement_risk <- read.csv(file.path(file_path, "Data/la_displacement_index.csv"))%>%
+  mutate(GEOID = str_pad(GEOID, width = 11, pad = "0"))%>%
+  filter(GEOID %in% pico_tracts$GEOID) #limiting to pico tracts
+
+# adding geometry for map
+st_geometry(displacement_risk) <- st_geometry(pico_tracts[match(displacement_risk$GEOID, pico_tracts$GEOID), ])
+class(displacement_risk)
+
+displacement_risk %>%
+  count(Typology) %>%
+  ggplot(aes(x = reorder(Typology, -n), y = n)) +
+  geom_col(mapping = aes(x=Typology, y = n), position = "dodge") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0, 12), breaks = c(0,2,4,6,8,10,12))+
+  labs(y = "Number of census tracts") +
+  theme(
+    legend.position = "top",
+    legend.text = element_text(size = 9.5, family = "Lato"),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 9.5, family = "Lato"),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8.5, family = "Lato"),
+    axis.text.y = element_text(size = 8.5, family = "Lato"),
+    axis.line.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+#saving
+ggsave(file.path(file_path, "Pico/Outputs/displacement_risk_bar_pico.png"),  width = 8, height = 2.5) 
+
 
 ###Transportation and Commuting###
 
