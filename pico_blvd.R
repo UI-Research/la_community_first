@@ -14,6 +14,8 @@ library(openxlsx)
 library(tidyverse)
 #used for maps and charts
 library(ggplot2)
+#used for charts
+library(stringr)
 #used for maps
 library(geofacet)
 #used for shapefile functions
@@ -161,12 +163,14 @@ ggsave(file.path(file_path, "Pico/Outputs/population_map_pico.png"), width = 14,
 age_bins <- list(
   age_0_17  = c("B01001_003", "B01001_004", "B01001_005", "B01001_006",
                 "B01001_027", "B01001_028", "B01001_029", "B01001_030"),
-  age_18_34 = c("B01001_007", "B01001_008", "B01001_009", "B01001_010", "B01001_011", "B01001_012", 
-                "B01001_031", "B01001_032", "B01001_033","B01001_034", "B01001_035", "B01001_036"),
-  age_35_64 = c("B01001_013", "B01001_014", "B01001_015", "B01001_016", "B01001_017", "B01001_018", "B01001_019", 
-                "B01001_037", "B01001_038", "B01001_039", "B01001_040", "B01001_041", "B01001_042", "B01001_043"),
-  age_65_up = c("B01001_020", "B01001_021", "B01001_022", "B01001_023", "B01001_024", "B01001_025",
-                "B01001_044", "B01001_041", "B01001_042", "B01001_043", "B01001_044", "B01001_045")
+  age_18_29 = c("B01001_007", "B01001_008", "B01001_009", "B01001_010", "B01001_011",  
+                "B01001_031", "B01001_032", "B01001_033","B01001_034", "B01001_035"),
+  age_30_44 = c("B01001_012","B01001_013", "B01001_014", 
+                "B01001_036", "B01001_037", "B01001_038"),
+  age_45_59 = c("B01001_015", "B01001_016", "B01001_017", 
+                "B01001_039", "B01001_040", "B01001_041"),
+  age_60_up = c("B01001_018", "B01001_019","B01001_020", "B01001_021", "B01001_022", "B01001_023", "B01001_024", "B01001_025",
+ "B01001_041", "B01001_042", "B01001_043", "B01001_044", "B01001_045", "B01001_046", "B01001_047", "B01001_048", "B01001_049")
 )
 
 
@@ -175,10 +179,11 @@ age_wide_pico <- sex_by_age %>%
   filter(variable %in% unlist(age_bins), GEOID %in% pico_tracts$GEOID)%>%
   group_by(GEOID)%>%
   mutate(age_group = case_when(
-    variable %in% age_bins$age_0_17 ~ "age_0_18",
-    variable %in% age_bins$age_18_34 ~ "age_19_34",
-    variable %in% age_bins$age_35_64 ~ "age_35_64",
-    variable %in% age_bins$age_65_up ~ "age_65_up"
+    variable %in% age_bins$age_0_17 ~ "age_0_17",
+    variable %in% age_bins$age_18_29 ~ "age_18_29",
+    variable %in% age_bins$age_30_44 ~ "age_30_44",
+    variable %in% age_bins$age_45_59 ~ "age_45_59",
+    variable %in% age_bins$age_60_up ~ "age_60_up",
   )) %>%
   group_by(GEOID, age_group)%>%
   summarise(population = sum(estimate, na.rm = TRUE), .groups = "drop")%>%
@@ -202,36 +207,87 @@ pop_by_age_group <- ggplot(age_totals, aes(x = age_group, y = population, fill =
   ) +
   scale_x_discrete(
     labels = c(
-      "age_0_18" = "0-18", 
-      "age_19_34" = "19-34", 
-      "age_35_64" = "35-64", 
-      "age_65_up" = "65+"
+      "age_0_17" = "0-17", 
+      "age_18_29" = "18-29", 
+      "age_30_44" = "30-44",
+      "age_45_59" = "45-59",
+      "age_60_up" = "60+"
     ))+
   scale_y_continuous(labels = scales::comma) +
   theme(legend.position = "none")+
   theme(
-  axis.title.x = element_text(size = 14),
-  axis.title.y = element_text(size = 14),
+  axis.title.x = element_text(size = 16),
+  axis.title.y = element_text(size = 16),
   axis.text.x = element_text(size = 16),
   axis.text.y = element_text(size = 16))
-
   
 
 ggsave(file.path(file_path, "Pico/Outputs/age_chart_pico.png"), width = 14, height = 6, dpi = 300)
 
-##Race and Ethnicity##
-#pull race  from ACS
-race <- get_acs(
-  geography = "tract",
-  table = "B02001",
-  state = state_fips,
-  county = county_fips,
-  year = 2023,
-  survey = "acs5",
-  geometry = FALSE
-)
 
-write.csv(race, file.path(file_path, "Fileshare", "race.csv"), row.names = FALSE)
+##Race and Ethnicity##
+
+#decided to remove race for now, since ethnicity captures everything we are looking for
+
+# #pull race  from ACS
+# race <- get_acs(
+#   geography = "tract",
+#   table = "B02001",
+#   state = state_fips,
+#   county = county_fips,
+#   year = 2023,
+#   survey = "acs5",
+#   geometry = FALSE
+# )
+# 
+# write.csv(race, file.path(file_path, "Fileshare", "race.csv"), row.names = FALSE)
+# 
+# race_wide_pico <- race %>%
+#   filter(GEOID %in% pico_tracts$GEOID,
+#          variable %in% c("B02001_001",  # Total pop
+#                          "B02001_002",  # White
+#                          "B02001_003",  # Black
+#                          "B02001_004",  # Native American
+#                          "B02001_005",  # Asian
+#                          "B02001_009"   # Other
+#          )) %>%
+#   select(GEOID, variable, estimate) %>%
+#   pivot_wider(
+#     names_from = variable,
+#     values_from = estimate,
+#     names_prefix = "race_"
+#   ) %>%
+#   rename(
+#     total = race_B02001_001,
+#     white = race_B02001_002,
+#     black = race_B02001_003,
+#     native_am = race_B02001_004,
+#     asian = race_B02001_005,
+#     other = race_B02001_009
+#   ) %>%
+#   mutate(
+#     pct_white = white / total * 100,
+#     pct_black = black / total * 100,
+#     pct_native_am = native_am / total * 100,
+#     pct_asian = asian / total * 100,
+#     pct_other = other / total * 100
+#   ) %>%
+#   bind_rows(
+#     summarise(., 
+#               GEOID = "Total",
+#               total = sum(total, na.rm = TRUE),
+#               white = sum(white, na.rm = TRUE),
+#               black = sum(black, na.rm = TRUE),
+#               native_am = sum(native_am, na.rm = TRUE),
+#               asian = sum(asian, na.rm = TRUE),
+#               other = sum(other, na.rm = TRUE),
+#               pct_white = white / total * 100,
+#               pct_black = black / total * 100,
+#               pct_native_am = native_am / total * 100,
+#               pct_asian = asian / total * 100,
+#               pct_other = other / total * 100)
+#   )
+
 
 #pull ethnicity  from ACS
 ethnicity <- 
@@ -242,10 +298,105 @@ ethnicity <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE
+    geometry = FALSE
   )
 
 write.csv(ethnicity, file.path(file_path, "Fileshare", "ethnicity.csv"), row.names = FALSE)
+
+#reformat and calculate percentages and totals
+ethnicity_wide_pico <- ethnicity %>%
+  filter(GEOID %in% pico_tracts$GEOID,
+         variable %in% c("B03002_001",  # Total pop
+                         "B03002_003",  # White
+                         "B03002_004",  # Black
+                         "B03002_005",  # American Indian
+                         "B03002_006",  # Asian
+                         "B03002_007",  # Hawaiian and Pacific Islander
+                         "B03002_010",  # Other
+                         "B03002_012"   # Hispanic
+         )) %>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(
+    names_from = variable,
+    values_from = estimate,
+    names_prefix = "eth_"
+  ) %>%
+  rename(
+    total = eth_B03002_001,
+    white = eth_B03002_003,
+    black = eth_B03002_004,
+    native_am = eth_B03002_005,
+    asian = eth_B03002_006,
+    hawaiian_pac = eth_B03002_007,
+    other = eth_B03002_010,
+    hispanic = eth_B03002_012
+  ) %>%
+  mutate(
+    native_hawaiian = native_am + hawaiian_pac,
+    pct_white = white / total * 100,
+    pct_black = black / total * 100,
+    pct_native_hawaiian = native_hawaiian / total * 100,
+    pct_asian = asian / total * 100,
+    pct_other = other / total * 100,
+    pct_hispanic = hispanic / total * 100
+  ) %>%
+  bind_rows(
+    summarise(.,
+              GEOID = "Total",
+              total = sum(total, na.rm = TRUE),
+              white = sum(white, na.rm = TRUE),
+              black = sum(black, na.rm = TRUE),
+              native_am = sum(native_am, na.rm = TRUE),
+              hawaiian_pac = sum(hawaiian_pac, na.rm = TRUE),
+              native_hawaiian = native_am + hawaiian_pac,
+              asian = sum(asian, na.rm = TRUE),
+              other = sum(other, na.rm = TRUE),
+              hispanic = sum(hispanic, na.rm = TRUE),
+              pct_white = white / total * 100,
+              pct_black = black / total * 100,
+              pct_native_hawaiian = native_hawaiian / total * 100,
+              pct_asian = asian / total * 100,
+              pct_other = other / total * 100,
+              pct_hispanic = hispanic / total * 100)
+  )
+
+#reformat for ggplot
+ethnicity_long <- ethnicity_wide_pico %>%
+  filter(GEOID == "Total") %>%
+  select(starts_with("pct_")) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "group",
+    values_to = "percent"
+  ) %>%
+  mutate(
+    group = recode(group,
+                   pct_white = "White",
+                   pct_black = "Black",
+                   pct_native_hawaiian = "Native American, Alaska Native, Native Hawaiiwan, and other Pacific Islander",
+                   pct_asian = "Asian",
+                   pct_other = "Other",
+                   pct_hispanic = "Hispanic")
+  )
+
+ethnicity_chart_pico <- ggplot(ethnicity_long, aes(x = reorder(group, -percent), y = percent, fill = group)) +
+  geom_bar(stat = "identity") +
+  labs(
+    title = NULL,
+    x = NULL,
+    y = "Percent of Corridor"
+  ) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1))+
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 16)) + 
+  theme(legend.position = "none")+
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16))
+
+ggsave(file.path(file_path, "Pico/Outputs/ethnicity_chart_pico.png"), width = 14, height = 6, dpi = 300)
+
 
 ##Median Income/Poverty##
 #pull income from ACS
@@ -257,7 +408,7 @@ median_income <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE
+    geometry = FALSE
   )
 
 write.csv(median_income, file.path(file_path, "Fileshare", "median_income.csv"), row.names = FALSE)
@@ -272,7 +423,7 @@ poverty_level <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
     )
 
 write.csv(poverty_level, file.path(file_path, "Fileshare", "poverty_level.csv"), row.names = FALSE)
@@ -288,7 +439,7 @@ employment_status <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 write.csv(employment_status, file.path(file_path, "Fileshare", "employment_status.csv"), row.names = FALSE)
@@ -308,7 +459,7 @@ family_structure <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 write.csv(family_structure, file.path(file_path, "Fileshare", "family_structure.csv"), row.names = FALSE)
@@ -325,7 +476,7 @@ language <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 write.csv(language, file.path(file_path, "Fileshare", "language.csv"), row.names = FALSE)
@@ -344,7 +495,7 @@ country_origin <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 write.csv(country_origin, file.path(file_path, "Fileshare", "country_origin.csv"), row.names = FALSE)
@@ -365,6 +516,8 @@ disability <-
     geometry = FALSE,
   )
 
+write.csv(disability, file.path(file_path, "Fileshare", "disability.csv"), row.names = FALSE)
+
 
 #pull hearing difficulty status
 hearing_diff <-
@@ -375,8 +528,11 @@ hearing_diff <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
+
+write.csv(hearing_diff, file.path(file_path, "Fileshare", "hearing_diff.csv"), row.names = FALSE)
+
 
 #pull vision difficulty status
 vision_diff <-
@@ -387,8 +543,11 @@ vision_diff <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
+
+write.csv(vision_diff, file.path(file_path, "Fileshare", "vision_diff.csv"), row.names = FALSE)
+
 
 ##Irregular work hours##
 #pull hours worked data
@@ -400,8 +559,11 @@ hrs_worked <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
+
+write.csv(hrs_worked, file.path(file_path, "Fileshare", "hrs_worked.csv"), row.names = FALSE)
+
 
 ##Internet/Computer access##
 #pull internet data
@@ -413,8 +575,11 @@ internet_subs <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
+
+write.csv(hrs_worked, file.path(file_path, "Fileshare", "internet_subs.csv"), row.names = FALSE)
+
 
 #pull computer access data
 tech_access <-
@@ -428,6 +593,9 @@ tech_access <-
     geometry = FALSE,
   )
 
+write.csv(tech_access, file.path(file_path, "Fileshare", "tech_access.csv"), row.names = FALSE)
+
+
 ###Housing & Displacement### - Teddy
 
 ##Homeowners/Renters##
@@ -440,8 +608,10 @@ tenure <-
   county = county_fips,
   year = 2023,
   survey = "acs5",
-  geometry = TRUE,
+  geometry = FALSE,
 )
+
+write.csv(tenure, file.path(file_path, "Fileshare", "tenure.csv"), row.names = FALSE)
 
 
 ##Housing Cost Burden##
@@ -455,8 +625,11 @@ renter_burden <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
+
+write.csv(renter_burden, file.path(file_path, "Fileshare", "renter_burden.csv"), row.names = FALSE)
+
 
 #for owners
 owner_burden <-   
@@ -467,8 +640,11 @@ owner_burden <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
+
+write.csv(owner_burden, file.path(file_path, "Fileshare", "owner_burden.csv"), row.names = FALSE)
+
 
 ##Disadvantaged communities##
 
@@ -491,8 +667,10 @@ vehicles <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
+
+write.csv(vehicles, file.path(file_path, "Fileshare", "vehicles.csv"), row.names = FALSE)
 
 ##Method for commuting to work##
 #pull means of transportation data
@@ -504,8 +682,11 @@ transportation_means <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
+
+write.csv(transportation_means, file.path(file_path, "Fileshare", "transportation_means.csv"), row.names = FALSE)
+
 
 #pull travel time data
 travel_time <-   
@@ -516,8 +697,11 @@ travel_time <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
+
+write.csv(travel_time, file.path(file_path, "Fileshare", "travel_time.csv"), row.names = FALSE)
+
 
 ##H+T Index metrics##
 #pull H+T data
