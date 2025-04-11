@@ -1080,33 +1080,163 @@ print(plot)
 
 ###Transportation and Commuting###
 
-##Car free and one car##
+##Car free and one car##                
 #pull car data
 vehicles <-   
   get_acs(
     geography = "tract",
-    table = "B25044",
+    variables = c(
+      total = "B25044_001",
+      no_car_o = "B25044_003",
+      one_car_o = "B25044_004",
+      no_car_r = "B25044_010",
+      one_car_r = "B25044_011"
+    ),
     state = state_fips,
     county = county_fips,
     year = 2023,
     survey = "acs5",
     geometry = FALSE,
-  )
+  )%>%
+    select(GEOID, variable, estimate) %>%
+    pivot_wider(names_from = variable, values_from = estimate) %>% # pivoting
+    mutate(
+      no_car = (no_car_o + no_car_r),
+      one_car = (one_car_o + one_car_r),
+      share_no_car = (no_car/total),
+      share_one_car = (one_car/total),
+      multiple_car = (total - no_car - one_car)
+    )%>%
+    select(GEOID, total, no_car, one_car, share_no_car, share_one_car, multiple_car) %>% # reducing df to necessary variables
+    filter(GEOID %in% pico_tracts$GEOID) # limiting to pico tracts
 
-##Method for commuting to work##
+#adding geometry for map
+st_geometry(vehicles) <- st_geometry(pico_tracts[match(vehicles$GEOID, pico_tracts$GEOID), ])
+class(vehicles)
+
+#creating custom bins for a map of share of occupied HU that are renter
+map_no_car <- vehicles%>% 
+  mutate(bin_no_car = cut(share_no_car, breaks=c(0, 0.1, 0.2,0.3,0.4,0.5,1),
+                          labels  = c("Less than 10%", "10-20%", "20-30%", "30-40%", "40-50%", "50% or more"),
+                          include.lowest = TRUE))
+#making each bin a factor
+map_no_car$bin_no_car <- factor(map_no_car$bin_no_car, 
+                                levels =c("Less than 10%", "10-20%", "20-30%", "30-40%", "40-50%", "50% or more"))
+
+#plot map
+plot <-ggplot()+
+  geom_sf(map_no_car, mapping = aes(fill = bin_no_car), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = palette_urbn_cyan[c(1,2,4,6,7,8)], #can adjust the palette or color scheme as necessary
+    name = "Share of households without car access",
+    breaks = c("Less than 10%", "10-20%", "20-30%", "30-40%", "40-50%", "50% or more"),
+  )+
+  theme_urbn_map()
+
+print(plot) #view map
+
+ggsave(file.path(file_path, "Pico/Outputs/share_no_car_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+
+
+## Method for commuting to work ##
 #pull means of transportation data
 transportation_means <-   
   get_acs(
     geography = "tract",
-    table = "B08301",
+    variables = c(
+      total = "B08301_001",
+      car = "B08301_002",
+      car_alone = "B08301_003",
+      car_carpool = "B08301_004",
+      total_public_transit = "B08301_010",
+      public_transit_bus = "B08301_011",
+      public_transit_subway = "B08301_012",
+      public_transit_commuter_rail = "B08301_013",
+      public_transit_street_car = "B08301_014",
+      taxi = "B08301_016",
+      motorcycle = "B08301_017",
+      bike = "B08301_018",
+      walk = "B08301_019",
+      other = "B08301_020",
+      wfh = "B08301_021"
+    ),
     state = state_fips,
     county = county_fips,
     year = 2023,
     survey = "acs5",
     geometry = FALSE,
+  )%>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>% # pivoting
+  mutate(
+    total_car = car+ motorcycle
+  )
+  filter(GEOID %in% pico_tracts$GEOID) # limiting to pico tracts
+
+#creating a new dataframe of totals across all tracts and compute shares of each mode of transit
+transportation_means_sums <- colSums(transportation_means[, 2:17], na.rm = TRUE)
+transportation_means_sums <- data.frame(t(transportation_means_sums))
+#generating shares of transport types
+for (i in 2:16) {
+  col_name <- names(transportation_means_sums)[i]
+  new_col_name <- paste0("share_", col_name)
+  transportation_means_sums[[new_col_name]] <- transportation_means_sums[[i]] / transportation_means_sums[[1]]
+}
+#generate/combine some variables for ease of data visualization
+transportation_means_sums <- transportation_means_sums%>%
+  mutate(
+    share_walk_or_bike = (share_walk + share_bike)
   )
 
-#pull travel time data
+## create a bar chart of shares of transportation by different types of means
+# first pivot to long
+transportation_long <- transportation_means_sums %>%
+  select(30,31,20,32,29) %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value")%>%
+  mutate(Value = ifelse(Variable == "share_other", 0.017, Value)) #the other category is computed as a residual (i.e. 1 minus selected categories)
+
+# Define custom labels for each variable
+custom_labels <- c(
+  "share_walk_or_bike" = "Walk or Bike", 
+  "share_total_car" = "Car",
+  "share_total_public_transit" = "Public Transportation",  
+  "share_other" = "Other",
+  "share_wfh" = "Work From Home"
+)
+#custom order of bars
+custom_order <- c("share_total_car", "share_total_public_transit", "share_walk_or_bike", "share_wfh", "share_other")
+transportation_long$Variable <- factor(transportation_long$Variable, levels = custom_order)
+
+# Produce bar chart with custom x-axis labels
+ggplot(transportation_long) +
+  geom_col(mapping = aes(x = Variable, y = Value), position = "dodge") +
+  geom_text(mapping = aes(x = Variable, y = Value, label = scales::percent(Value, accuracy = 0.1)),
+            vjust = -0.5, size = 3.5, family = "Lato") +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0)),
+    limits = c(0, 1),
+    breaks = seq(0, 1, by = 0.1),
+    labels = scales::percent_format(accuracy = 1)  # Percent labels on y-axis
+  ) +
+  scale_x_discrete(labels = custom_labels) +  # Use custom labels for the x-axis
+  theme(
+    legend.position = "top",
+    legend.text = element_text(size = 9.5, family = "Lato"),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.x = element_text(size = 8.5, family = "Lato"),
+    axis.text.y = element_text(size = 8.5, family = "Lato")
+  )
+#saving
+ggsave(file.path(file_path, "Pico/Outputs/means_of_transt_bar_pico.png"),  width = 8, height = 2.5)       
+
+
+### pull travel time data
 travel_time <-   
   get_acs(
     geography = "tract",
@@ -1116,6 +1246,23 @@ travel_time <-
     year = 2023,
     survey = "acs5",
     geometry = FALSE,
+  )%>%
+  select(GEOID, variable, estimate) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>% # pivoting
+  rename(
+    total = B08303_001,
+    commute_5_less = B08303_002,
+    commute_5_9 = B08303_003,
+    commute_10_14 = B08303_004,
+    commute_15_19 = B08303_005,
+    commute_20_24 = B08303_006,
+    commute_25_29 = B08303_007,
+    commute_30_34 = B08303_008,
+    commute_35_39 = B08303_009,
+    commute_40_44 = B08303_010,
+    commute_45_59 = B08303_011,
+    commute_60_89 = B08303_012,
+    commmute_90_plus = B08303_013
   )
 
 ##H+T Index metrics##
