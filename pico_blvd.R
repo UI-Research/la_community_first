@@ -1175,7 +1175,7 @@ transportation_means <-
   pivot_wider(names_from = variable, values_from = estimate) %>% # pivoting
   mutate(
     total_car = car+ motorcycle
-  )
+  )%>%
   filter(GEOID %in% pico_tracts$GEOID) # limiting to pico tracts
 
 #creating a new dataframe of totals across all tracts and compute shares of each mode of transit
@@ -1262,24 +1262,199 @@ travel_time <-
     commute_40_44 = B08303_010,
     commute_45_59 = B08303_011,
     commute_60_89 = B08303_012,
-    commmute_90_plus = B08303_013
+    commute_90_plus = B08303_013
+  )%>%
+  filter(GEOID %in% pico_tracts$GEOID) # limiting to pico tracts
+
+
+
+#create a df of totals across all tracts and compute shares of each commute bin
+travel_time_sums <- colSums(travel_time[, 2:14], na.rm = TRUE)
+travel_time_sums <- data.frame(t(travel_time_sums))
+#generating shares of transport types
+for (i in 2:14) {
+  col_name <- names(travel_time_sums)[i]
+  new_col_name <- paste0("share_", col_name)
+  travel_time_sums[[new_col_name]] <- travel_time_sums[[i]] / travel_time_sums[[1]]
+}
+#pivoting to long
+travel_time_sums_long <- travel_time_sums %>%
+  select(14:25) %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value")
+
+### producing a bar chart of commute times
+#custom labels
+custom_labels <- c(
+  "share_commute_5_less" = "Less than 5",
+  "share_commute_5_9" = "5 to 9",
+  "share_commute_10_14" = "10 to 14",
+  "share_commute_15_19" = "15 to 19",
+  "share_commute_20_24" = "20 to 24",
+  "share_commute_25_29" = "25 to 29",
+  "share_commute_30_34" = "30 to 34",
+  "share_commute_35_39" = "35 to 39",
+  "share_commute_40_44" = "40 to 44",
+  "share_commute_45_59" = "45 to 59",
+  "share_commute_60_89" = "60 to 89",
+  "share_commute_90_plus" = "90 or more"
+)
+#custom order of bars
+custom_order <- c("share_commute_5_less", "share_commute_5_9", "share_commute_10_14", "share_commute_15_19",  "share_commute_20_24",
+                  "share_commute_25_29","share_commute_30_34","share_commute_35_39","share_commute_40_44","share_commute_45_59",
+                  "share_commute_60_89","share_commute_90_plus")
+travel_time_sums_long$Variable <- factor(travel_time_sums_long$Variable, levels = custom_order)
+
+#bar chart
+ggplot(travel_time_sums_long) +
+  geom_col(mapping = aes(x = Variable, y = Value), position = "dodge") +
+  geom_text(mapping = aes(x = Variable, y = Value, label = scales::percent(Value, accuracy = 0.1)),
+            vjust = -0.5, size = 3.5, family = "Lato") +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0)),
+    limits = c(0, 0.40),
+    breaks = seq(0, 1, by = 0.05),
+    labels = scales::percent_format(accuracy = 1)  # Percent labels on y-axis
+  ) +
+  scale_x_discrete(labels = custom_labels) +  # using custom labels for the x axis
+  labs(
+    x = "Commute time (minutes)",
+    y = "Share of residents in Pico census tracts"
+  ) +
+  theme(
+    legend.position = "top",
+    legend.text = element_text(size = 9.5, family = "Lato"),
+    axis.text.x = element_text(size = 8.5, family = "Lato"),
+    axis.text.y = element_text(size = 8.5, family = "Lato"),
+    axis.title.x = element_text(size = 10, family = "Lato"),
+    axis.title.y = element_text(size = 10, family = "Lato")
   )
 
-##H+T Index metrics##
+#saving
+ggsave(file.path(file_path, "Pico/Outputs/commute_time_bar_pico.png"),  width = 8, height = 2.5)    
+
+
+### Also going to make a map of the share of residents with longer than an hour commute
+travel_time <- travel_time%>%
+  mutate(
+    commute_hour_plus = commute_60_89 + commute_90_plus,
+    share_commute_hour_plus = commute_hour_plus/total 
+  )
+
+#add geometry for map
+st_geometry(travel_time) <- st_geometry(pico_tracts[match(travel_time$GEOID, pico_tracts$GEOID), ])
+class(travel_time)
+
+#custom bins for share of residents with an hour + commute
+map_travel_time <- travel_time%>% 
+  mutate(bin_hour_plus = cut(share_commute_hour_plus, breaks=c(0,0.05,0.1,0.15,0.2,0.25,1),
+                                labels  = c("Less than 5%", "5-10%", "10-15%", "15-20%", "20-25%", "25% or more"),
+                                include.lowest = TRUE))
+#making each bin a factor
+map_travel_time$bin_hour_plus <- factor(map_travel_time$bin_hour_plus, 
+                                            levels = c("Less than 5%", "5-10%", "10-15%", "15-20%", "20-25%", "25% or more"))
+
+#plot map
+plot <-ggplot()+
+  geom_sf(map_travel_time, mapping = aes(fill = bin_hour_plus), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = palette_urbn_cyan[c(1,2,3,6, 7,8)], #can adjust the palette or color scheme as necessary
+    name = "Share of individuals with a commute of an hour or longer",
+    breaks = c("Less than 5%", "5-10%", "10-15%", "15-20%", "20-25%", "25% or more")
+  )+
+  theme_urbn_map()
+
+print(plot) #view map
+
+ggsave(file.path(file_path, "Pico/Outputs/commute_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+
+
+
+######## H+T Index metrics #######
 #pull H+T data
 ht_index <- read.csv(file.path(file_path, "Data/htaindex2022_data_tracts_06.csv"))%>%
   rename(GEOID = tract)%>%
   mutate(GEOID = gsub('"', '', GEOID))%>%
-  mutate(GEOID = as.numeric(GEOID))
+  mutate(GEOID = str_pad(GEOID, width = 11, pad = "0"))%>% #need to add a leading zero to match GEOID structure
+  filter(GEOID %in% pico_tracts$GEOID) # limiting to pico tracts
 
-#housing and transportation costs as percent of income
+#add geometry for map
+st_geometry(ht_index) <- st_geometry(pico_tracts[match(ht_index$GEOID, pico_tracts$GEOID), ])
+class(ht_index)
 
-#all transit performance score
 
-##Bike score
+### housing and transportation costs as a percentage of income - map ###
+
+#H+T index for AMI
+#custom bins
+map_ht_percent_income <- ht_index%>% 
+  mutate(bin_ht_ami = cut(ht_ami, breaks=c(0,30,40,50,100),
+                             labels  = c("Less than 30%", "30-40%", "40-50%", "50% or more"),
+                             include.lowest = TRUE))
+#making each bin a factor
+map_ht_percent_income$bin_ht_ami <- factor(map_ht_percent_income$bin_ht_ami, 
+                                        levels = c("Less than 30%", "30-40%", "40-50%", "50% or more"))
+
+#plot map
+plot <-ggplot()+
+  geom_sf(map_ht_percent_income, mapping = aes(fill = bin_ht_ami), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = palette_urbn_cyan[c(2,4,6,8)], #can adjust the palette or color scheme as necessary
+    name = "Share of income spent on housing and transportation costs for area median income",
+    breaks = c("Less than 30%", "30-40%", "40-50%", "50% or more")
+  )+
+  theme_urbn_map()
+
+print(plot) #view map
+
+ggsave(file.path(file_path, "Pico/Outputs/ht_ami_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+
+#Repeating using H+T index for 80% AMI
+map_ht_80percent_income <- ht_index%>% 
+  mutate(bin_ht_80ami = cut(ht_80ami, breaks=c(0,30,40,50,60,100),
+                          labels  = c("Less than 30%", "30-40%", "40-50%", "50-60%", "60% or more"),
+                          include.lowest = TRUE))
+#making each bin a factor
+map_ht_80percent_income$bin_ht_80ami <- factor(map_ht_80percent_income$bin_ht_80ami, 
+                                           levels = c("Less than 30%", "30-40%", "40-50%", "50-60%", "60% or more"))
+
+#plot map
+plot <-ggplot()+
+  geom_sf(map_ht_80percent_income, mapping = aes(fill = bin_ht_80ami), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 16, hjust = .5)) +
+  scale_fill_manual(
+    values = palette_urbn_cyan[c(2,3,5,7,8)], #can adjust the palette or color scheme as necessary
+    name = "Share of income spent on housing and transportation costs for 80% area median income",
+    breaks = c("Less than 30%", "30-40%", "40-50%", "50-60%", "60% or more")
+  )+
+  theme_urbn_map()
+
+print(plot) #view map
+
+ggsave(file.path(file_path, "Pico/Outputs/ht_80ami_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+
+
+#all transit performance score - skipping for now
+
+############# Bike score ##########
+### not sure if this exists by tract, but overall the scores are as follows:
+# bike score: 72
+#walk score: 85
+# transit score: 59
 
 ##Collisions - not sure about best data here
-
-
 
 
