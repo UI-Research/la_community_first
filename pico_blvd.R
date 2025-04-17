@@ -258,14 +258,16 @@ plot <-ggplot()+
   geom_sf(map_disability_pico, mapping = aes(fill = bin_disability), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,3,5,6,8)], #can adjust the palette or color scheme as necessary
     name = "Number of individuals with a disability",
     breaks = c("Less than 200", "200-300", "300-400", "400-500", "500 or more")
   )+
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
 
 print(plot) #view map
 
@@ -323,14 +325,17 @@ plot <-ggplot()+
   geom_sf(map_hearing_diff, mapping = aes(fill = bin_hearing_diff), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,3,6,8)], #can adjust the palette or color scheme as necessary
     name = "Number of individuals with hearing difficulty",
     breaks = c("Less than 50", "50-100", "100-150", "150 or more")
   )+
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -388,14 +393,17 @@ plot <-ggplot()+
   geom_sf(map_vision_diff, mapping = aes(fill = bin_vision_diff), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,3,6,8)], #can adjust the palette or color scheme as necessary
     name = "Number of individuals with a vision difficulty",
     breaks = c("Less than 50", "50-100", "100-150", "150 or more")
   )+
-  theme_urbn_map()
+  theme_urbn_map() +
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -443,14 +451,17 @@ plot <-ggplot()+
   geom_sf(map_amb_diff, mapping = aes(fill = bin_amb_diff), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,3,5,7,8)], #can adjust the palette or color scheme as necessary
     name = "Number of individuals with ambulatory difficulty",
     breaks = c("Fewer than 50", "50-100", "100-200", "200-300", "300 or more")
   )+
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -510,14 +521,17 @@ plot <-ggplot()+
   geom_sf(map_no_int, mapping = aes(fill = bin_no_int), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,2,4,6,8)], #can adjust the palette or color scheme as necessary
     name = "Share of households without internet access",
     breaks = c("Less than 5%", "5-10%", "10-15%", "15-20%", "20% or more")
   )+
-  theme_urbn_map()
+  theme_urbn_map() +
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -567,14 +581,17 @@ plot <-ggplot()+
   geom_sf(map_tech_access, mapping = aes(fill = bin_no_computer), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,3,6,8)], #can adjust the palette or color scheme as necessary
     name = "Share of households without access to a device",
     breaks = c("Less than 1%", "1-5%", "5-10%", "10% or higher")
   )+
-  theme_urbn_map()
+  theme_urbn_map() +
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -633,14 +650,22 @@ tech_sums_long$device_type <- factor(tech_sums_long$device_type,
                                      levels = c("share_computer", "share_smartphone", "share_tablet", "share_no_computer"))  # Custom order
 
 # Now plot the data
-ggplot(tech_sums_long) +
-  geom_col(mapping = aes(x=device_type, y = share), position = "dodge") +
-  geom_text(aes(x = device_type, y = share, label = scales::percent(share, accuracy = 0.01)), 
-            vjust = -0.5, size = 3, family = "Lato") +  # Add labels above the bars
+plot <- ggplot(tech_sums_long) +
+  geom_col(mapping = aes(x = device_type, y = share), position = "dodge") +
+  geom_text(
+    aes(x = device_type, y = share, label = scales::percent(share, accuracy = 1)), 
+    vjust = -0.5, size = 3, family = "Lato"
+  ) +
   labs(
-    x = "Device Access Type",
-    y = "Share of Total Population") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0, 1), breaks = c(.25, .5, .75)) +
+    x = "Device Type",
+    y = "Share of Households"
+  ) +
+  scale_y_continuous(
+    labels = scales::percent_format(accuracy = 1),
+    expand = expansion(mult = c(0, 0)), 
+    limits = c(0, 1), 
+    breaks = c(.25, .5, .75)
+  ) +
   scale_x_discrete(labels = c(
     "share_computer" = "Access to laptop or desktop computer", 
     "share_no_computer" = "No access to any device", 
@@ -649,15 +674,18 @@ ggplot(tech_sums_long) +
   )) +
   theme(
     legend.position="top",
-    legend.text = element_text(size=9.5, family="Lato"),
-    axis.title.x = element_blank(),
-    axis.title.y = element_blank(),
-    axis.text.x = element_text(size=8.5, family="Lato"),
-    axis.text.y = element_text(size=8.5, family="Lato")
+    legend.text = element_text(size=12, family="Lato"),
+    axis.title.x = element_text(size = 12, family = "Lato"),
+    axis.title.y = element_text(size = 12, family = "Lato"),
+    axis.text.x = element_text(size=10, family="Lato"),
+    axis.text.y = element_text(size=10, family="Lato")
   )
 
+  
+print(plot)
+
 #saving
-ggsave(file.path(file_path, "Pico/Outputs/tech_access_bar_pico.png"),  width = 8, height = 2.5)                       
+ggsave(file.path(file_path, "Pico/Outputs/tech_access_bar_pico.png"),  width = 9, height = 3)                       
   
   
 
@@ -709,14 +737,17 @@ plot <-ggplot()+
   geom_sf(map_tenure, mapping = aes(fill = bin_tenure), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_quintile[], #can adjust the palette or color scheme as necessary
     name = "Share of occupied housing units that are rented",
     breaks = c("50-60%", "60-70%", "70-80%", "80-90%", "90-100%")
   )+
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -772,14 +803,17 @@ plot <-ggplot()+
   geom_sf(map_med_inc_housing, mapping = aes(fill = bin_median_share), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "black", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_diverging[c(5,4,3,2,1)], #can adjust the palette or color scheme as necessary
     name = "Median share of income spent on housing",
     breaks = c("less than 30%", "30-35%", "35-40%", "40-45%", "45-50%")
   )+
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -800,14 +834,17 @@ plot <-ggplot()+
   geom_sf(map_30_pct, mapping = aes(fill = bin_30_pct), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_red[c(1,2,4,6,8)], #can adjust the palette or color scheme as necessary
     name = "Share of renters spending more than 30% of income on housing",
     breaks = c("less than 40%", "40-50%", "50-60%", "60-70%", "70-80%")
   )+
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -828,14 +865,17 @@ plot <-ggplot()+
   geom_sf(map_50_pct, mapping = aes(fill = bin_50_pct), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_red[c(1,2,4,6,7,8)], #can adjust the palette or color scheme as necessary
     name = "Share of renters spending more than 50% of income on housing",
     breaks = c("less than 25%", "25-30%", "30-35%", "35-40%", "40% or higher")
   )+
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -880,8 +920,6 @@ plot <- ggplot() +
   geom_sf(map_owner_cost_burden, mapping = aes(fill = bin_median_share), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "black", alpha = 0, lwd = 1) + # transparent buffer zone
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + # streets
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = c(
       "less than 20%" = palette_urbn_diverging[6],
@@ -894,7 +932,12 @@ plot <- ggplot() +
     na.value = "gray80",  # color for NA areas on the map
     guide = guide_legend(override.aes = list(alpha = 1))  # making sure NA values show in legend
   ) +
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot)
 
@@ -957,8 +1000,6 @@ plot <- ggplot() +
   geom_sf(map_owner_cost_burden, mapping = aes(fill = bin_share_30), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) +
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) +
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = c(
       "less than 20%" = palette_urbn_red[1],
@@ -968,10 +1009,15 @@ plot <- ggplot() +
       "80-100%" = palette_urbn_red[8],
       "No data" = "gray80"
     ),
-    name = "Share of households spending more than 30% of income on housing - owner-occupied units"
+    name = "Share of homeowners spending more than 30% of income on housing"
   ) +
   guides(fill = guide_legend(override.aes = list(color = NA))) +
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot)
 
@@ -994,8 +1040,6 @@ plot <- ggplot() +
   geom_sf(map_owner_cost_burden, mapping = aes(fill = bin_share_50), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) +
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) +
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = c(
       "less than 20%" = palette_urbn_red[1],
@@ -1005,10 +1049,15 @@ plot <- ggplot() +
       "80-100%" = palette_urbn_red[8],
       "No data" = "gray80"
     ),
-    name = "Share of households spending more than 50% of income on housing - owner-occupied units"
+    name = "Share of homeowners spending more than 50% of income on housing"
   ) +
   guides(fill = guide_legend(override.aes = list(color = NA))) +
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot)
 
@@ -1060,8 +1109,6 @@ plot <- ggplot() +
   geom_sf(displacement_risk, mapping = aes(fill = Typology, show.legend = TRUE)) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) +
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) +
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = c(
       "Advanced Gentrification" = palette_urbn_diverging[2],
@@ -1073,7 +1120,12 @@ plot <- ggplot() +
     ),
     name = "Displacement Risk"
   ) +
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot)
 
@@ -1128,14 +1180,17 @@ plot <-ggplot()+
   geom_sf(map_no_car, mapping = aes(fill = bin_no_car), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,2,4,6,7,8)], #can adjust the palette or color scheme as necessary
     name = "Share of households without car access",
     breaks = c("Less than 10%", "10-20%", "20-30%", "30-40%", "40-50%", "50% or more"),
   )+
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -1213,27 +1268,34 @@ custom_order <- c("share_total_car", "share_total_public_transit", "share_walk_o
 transportation_long$Variable <- factor(transportation_long$Variable, levels = custom_order)
 
 # Produce bar chart with custom x-axis labels
-ggplot(transportation_long) +
+plot <- ggplot(transportation_long) +
   geom_col(mapping = aes(x = Variable, y = Value), position = "dodge") +
-  geom_text(mapping = aes(x = Variable, y = Value, label = scales::percent(Value, accuracy = 0.1)),
+  geom_text(mapping = aes(x = Variable, y = Value, label = scales::percent(Value, accuracy = 1)),
             vjust = -0.5, size = 3.5, family = "Lato") +
   scale_y_continuous(
     expand = expansion(mult = c(0, 0)),
-    limits = c(0, 1),
+    limits = c(0, 0.75),
     breaks = seq(0, 1, by = 0.1),
     labels = scales::percent_format(accuracy = 1)  # Percent labels on y-axis
   ) +
   scale_x_discrete(labels = custom_labels) +  # Use custom labels for the x-axis
   theme(
     legend.position = "top",
-    legend.text = element_text(size = 9.5, family = "Lato"),
+    legend.text = element_text(size = 12, family = "Lato"),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
-    axis.text.x = element_text(size = 8.5, family = "Lato"),
-    axis.text.y = element_text(size = 8.5, family = "Lato")
+    axis.text.x = element_text(size = 10, family = "Lato"),
+    axis.text.y = element_text(size = 10, family = "Lato")
   )
+
+print(plot) 
+
 #saving
-ggsave(file.path(file_path, "Pico/Outputs/means_of_transt_bar_pico.png"),  width = 8, height = 2.5)       
+ggsave(file.path(file_path, "Pico/Outputs/means_of_transt_bar_pico.png"),  width = 8, height = 3)  
+
+
+
+
 
 
 ### pull travel time data
@@ -1264,50 +1326,57 @@ travel_time <-
     commute_60_89 = B08303_012,
     commute_90_plus = B08303_013
   )%>%
-  filter(GEOID %in% pico_tracts$GEOID) # limiting to pico tracts
+  filter(GEOID %in% pico_tracts$GEOID)%>% # limiting to pico tracts
+  mutate(
+    commute_5_14 = commute_5_9 + commute_10_14,
+    commute_15_24 = commute_15_19 + commute_20_24,
+    commute_25_34 = commute_25_29 + commute_30_34,
+    commute_35_44 = commute_35_39 + commute_40_44
+  )%>%
+  select(
+    total, commute_5_less, commute_5_14, commute_15_24, commute_25_34, commute_35_44, commute_45_59,
+    commute_60_89, commute_90_plus
+  )
 
 
 
 #create a df of totals across all tracts and compute shares of each commute bin
-travel_time_sums <- colSums(travel_time[, 2:14], na.rm = TRUE)
+travel_time_sums <- colSums(travel_time[, 1:9], na.rm = TRUE)
 travel_time_sums <- data.frame(t(travel_time_sums))
 #generating shares of transport types
-for (i in 2:14) {
+for (i in 2:9) {
   col_name <- names(travel_time_sums)[i]
   new_col_name <- paste0("share_", col_name)
   travel_time_sums[[new_col_name]] <- travel_time_sums[[i]] / travel_time_sums[[1]]
 }
+
 #pivoting to long
 travel_time_sums_long <- travel_time_sums %>%
-  select(14:25) %>%
+  select(10:17) %>%
   pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value")
 
 ### producing a bar chart of commute times
 #custom labels
 custom_labels <- c(
   "share_commute_5_less" = "Less than 5",
-  "share_commute_5_9" = "5 to 9",
-  "share_commute_10_14" = "10 to 14",
-  "share_commute_15_19" = "15 to 19",
-  "share_commute_20_24" = "20 to 24",
-  "share_commute_25_29" = "25 to 29",
-  "share_commute_30_34" = "30 to 34",
-  "share_commute_35_39" = "35 to 39",
-  "share_commute_40_44" = "40 to 44",
+  "share_commute_5_14" = "5 to 14",
+  "share_commute_15_24" = "15 to 24",
+  "share_commute_25_34" = "25 to 34",
+  "share_commute_35_44" = "35 to 44",
   "share_commute_45_59" = "45 to 59",
   "share_commute_60_89" = "60 to 89",
   "share_commute_90_plus" = "90 or more"
 )
 #custom order of bars
-custom_order <- c("share_commute_5_less", "share_commute_5_9", "share_commute_10_14", "share_commute_15_19",  "share_commute_20_24",
-                  "share_commute_25_29","share_commute_30_34","share_commute_35_39","share_commute_40_44","share_commute_45_59",
+custom_order <- c("share_commute_5_less", "share_commute_5_14", "share_commute_15_24",
+                  "share_commute_25_34","share_commute_35_44","share_commute_45_59",
                   "share_commute_60_89","share_commute_90_plus")
 travel_time_sums_long$Variable <- factor(travel_time_sums_long$Variable, levels = custom_order)
 
 #bar chart
 ggplot(travel_time_sums_long) +
   geom_col(mapping = aes(x = Variable, y = Value), position = "dodge") +
-  geom_text(mapping = aes(x = Variable, y = Value, label = scales::percent(Value, accuracy = 0.1)),
+  geom_text(mapping = aes(x = Variable, y = Value, label = scales::percent(Value, accuracy = 1)),
             vjust = -0.5, size = 3.5, family = "Lato") +
   scale_y_continuous(
     expand = expansion(mult = c(0, 0)),
@@ -1322,15 +1391,15 @@ ggplot(travel_time_sums_long) +
   ) +
   theme(
     legend.position = "top",
-    legend.text = element_text(size = 9.5, family = "Lato"),
-    axis.text.x = element_text(size = 8.5, family = "Lato"),
-    axis.text.y = element_text(size = 8.5, family = "Lato"),
+    legend.text = element_text(size = 12, family = "Lato"),
+    axis.text.x = element_text(size = 12, family = "Lato"),
+    axis.text.y = element_text(size = 12, family = "Lato"),
     axis.title.x = element_text(size = 10, family = "Lato"),
     axis.title.y = element_text(size = 10, family = "Lato")
   )
 
 #saving
-ggsave(file.path(file_path, "Pico/Outputs/commute_time_bar_pico.png"),  width = 8, height = 2.5)    
+ggsave(file.path(file_path, "Pico/Outputs/commute_time_bar_pico.png"),  width = 8, height = 3)    
 
 
 ### Also going to make a map of the share of residents with longer than an hour commute
@@ -1358,14 +1427,17 @@ plot <-ggplot()+
   geom_sf(map_travel_time, mapping = aes(fill = bin_hour_plus), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,2,3,6, 7,8)], #can adjust the palette or color scheme as necessary
-    name = "Share of individuals with a commute of an hour or longer",
+    name = "Share of individuals with 60+ minute commute",
     breaks = c("Less than 5%", "5-10%", "10-15%", "15-20%", "20-25%", "25% or more")
   )+
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -1404,14 +1476,17 @@ plot <-ggplot()+
   geom_sf(map_ht_percent_income, mapping = aes(fill = bin_ht_ami), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_cyan[c(2,4,6,8)], #can adjust the palette or color scheme as necessary
-    name = "Share of income spent on housing and transportation costs for area median income",
+    name = "Share of income spent on H & T costs - area median income",
     breaks = c("Less than 30%", "30-40%", "40-50%", "50% or more")
   )+
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
@@ -1432,14 +1507,17 @@ plot <-ggplot()+
   geom_sf(map_ht_80percent_income, mapping = aes(fill = bin_ht_80ami), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
-  theme(plot.title.position = "plot",
-        plot.title = element_text(size = 16, hjust = .5)) +
   scale_fill_manual(
     values = palette_urbn_cyan[c(2,3,5,7,8)], #can adjust the palette or color scheme as necessary
-    name = "Share of income spent on housing and transportation costs for 80% area median income",
+    name = "Share of income spent on H & T costs - 80% area median income",
     breaks = c("Less than 30%", "30-40%", "40-50%", "50-60%", "60% or more")
   )+
-  theme_urbn_map()
+  theme_urbn_map()+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
 
 print(plot) #view map
 
