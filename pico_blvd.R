@@ -24,7 +24,7 @@ library(sf)
 #used for street data
 library(osmdata)
 
-options(tigris_use_cache = TRUE)
+# options(tigris_use_cache = TRUE)
 
 
 #used to pull urban theme template
@@ -32,14 +32,16 @@ library(urbnthemes)
 options(scipen=999)
 set_urbn_defaults(style="print")
 
-#load in data dictionary for acs
-v23 <- load_variables(2023, "acs5", cache = TRUE)
 
 ####Load and Clean####
 #set personal file path to make it easier to pull data
 
 #Gabe
 file_path <- file.path("C:/Users/GSamuels/Box/LA Transit project/Social Climate Analysis")
+
+#load in data dictionary for acs
+v23 <- load_variables(2023, "acs5", cache = TRUE)
+write.csv(v23, file.path(file_path, "Fileshare", "census_variables.csv"), row.names = FALSE)
 
 #Teddy
 #file_path <- file.path("C:/Users/TMaginn/Box/LA Transit project/Social Climate Analysis")
@@ -408,10 +410,37 @@ median_income <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = FALSE
+    geometry = TRUE
   )
 
 write.csv(median_income, file.path(file_path, "Fileshare", "median_income.csv"), row.names = FALSE)
+
+##Map of median incomes by Census Tract
+
+#edit the table so that each row is a census tract
+income_wide_pico <- median_income %>%
+  filter(variable == "B19013_001", GEOID %in% pico_tracts$GEOID) %>%
+  mutate(income = estimate) %>%
+  select(GEOID, income, NAME, moe, geometry)
+
+income_map_pico <- ggplot(income_wide_pico) +
+  geom_sf(aes(fill = income), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
+  scale_fill_gradientn(
+    colors = palette_urbn_green[c(1,2,4,6,8)],
+    name = "Median Income by Census Tract",
+    labels = scales::label_dollar(scale_cut = scales::cut_short_scale())
+  ) +
+  theme_urbn_map() +
+  theme(
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 16),
+    legend.key.height = unit(1.2, "cm"),
+    legend.key.width = unit(0.6, "cm")
+  )
+
+ggsave(file.path(file_path, "Pico/Outputs/income_map_pico.png"), width = 14, height = 6, dpi = 300)
 
 
 #pull poverty level from ACS
@@ -423,11 +452,63 @@ poverty_level <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = FALSE,
+    geometry = TRUE
     )
+
 
 write.csv(poverty_level, file.path(file_path, "Fileshare", "poverty_level.csv"), row.names = FALSE)
 
+#edit table so that each row is a census tract and we can calculate the share
+poverty_wide_pico <- poverty_level %>%
+  filter(variable %in% c("B17001_001", "B17001_002"),
+         GEOID %in% pico_tracts$GEOID) %>%
+  select(GEOID, variable, estimate, geometry) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>%
+  mutate(
+    pct_below_pov = 100 * B17001_002 / B17001_001,
+    pov_bin = case_when(
+      pct_below_pov < 10 ~ "Less than 10%",
+      pct_below_pov >= 10 & pct_below_pov < 20 ~ "10–20%",
+      pct_below_pov >= 20 & pct_below_pov < 30 ~ "20–30%",
+      pct_below_pov >= 30 ~ "30% or more",
+      TRUE ~ NA_character_
+    ),
+    pov_bin = factor(pov_bin, levels = c("Less than 10%", "10–20%", "20–30%", "30% or more"))
+  )%>%
+  rename(
+    total_pop = B17001_001,
+    below_pov = B17001_002
+  ) %>%
+  select(GEOID, total_pop, below_pov, pct_below_pov, pov_bin, geometry)
+
+sum(poverty_wide_pico$below_pov)
+
+total_share_below_pov <- sum(poverty_wide_pico$below_pov, na.rm = TRUE) / sum(poverty_wide_pico$total_pop, na.rm = TRUE)
+
+#Map of tracts by poverty level status
+poverty_map_pico <- ggplot(poverty_wide_pico) +
+  geom_sf(aes(fill = pov_bin), show.legend = TRUE) +
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
+  scale_fill_manual(
+    values = c(
+      "Less than 10%" = "#d0f0c0",
+      "10–20%" = "#a1d99b",
+      "20–30%" = "#74c476",
+      "30% or more" = "#238b45"
+    ),
+    name = "Share Below Poverty",
+    drop = FALSE
+  ) +
+  theme_urbn_map() +
+  theme(
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 16),
+    legend.key.height = unit(1.2, "cm"),
+    legend.key.width = unit(0.6, "cm")
+  )
+
+ggsave(file.path(file_path, "Pico/Outputs/poverty_map_pico.png"), width = 14, height = 6, dpi = 300)
 
 ##Employment Status##
 #pull employment status from acs
@@ -439,10 +520,74 @@ employment_status <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = FALSE,
+    geometry = TRUE,
   )
 
 write.csv(employment_status, file.path(file_path, "Fileshare", "employment_status.csv"), row.names = FALSE)
+
+#create a new table that lists the employment status (total and share) for each tract
+employment_wide_pico <- employment_status %>%
+  filter(GEOID %in% pico_tracts$GEOID) %>%
+  mutate(employment_stat = case_when(
+    variable == "B23025_001" ~ "total",
+    variable == "B23025_002" ~ "in_labor_force",
+    variable == "B23025_007" ~ "out_labor_force",
+    TRUE ~ NA_character_
+  )) %>%
+  filter(!is.na(employment_stat)) %>%
+  select(GEOID, employment_stat, estimate, NAME) %>%
+  pivot_wider(names_from = employment_stat, values_from = estimate) %>%
+  mutate(
+    share_in_labor_force = in_labor_force / total,
+    share_out_labor_force = out_labor_force / total
+  )
+
+#calculate the totals separately
+employment_total_row <- employment_wide_pico %>%
+  summarise(
+    GEOID = "Total",
+    total = sum(total, na.rm = TRUE),
+    in_labor_force = sum(in_labor_force, na.rm = TRUE),
+    out_labor_force = sum(out_labor_force, na.rm = TRUE)
+  ) %>%
+  mutate(
+    share_in_labor_force = in_labor_force / total,
+    share_out_labor_force = out_labor_force / total
+  )
+
+#bind to the original table
+employment_wide_pico <- bind_rows(employment_wide_pico, employment_total_row)
+
+#create a bar chart
+employment_bar_chart <- ggplot(
+  tibble::tibble(
+    status = c("Employed", "Unemployed"),
+    share = c(
+      employment_wide_pico$share_in_labor_force[employment_wide_pico$GEOID == "Total"],
+      employment_wide_pico$share_out_labor_force[employment_wide_pico$GEOID == "Total"]
+    )
+  ),
+  aes(x = status, y = share, fill = status)
+) +
+  geom_col() +
+  geom_text(aes(label = scales::percent(share, accuracy = 1)), vjust = -0.5, size = 6) +
+  labs(
+    title = NULL,
+    x = NULL,
+    y = NULL,
+    fill = NULL
+  ) +
+  scale_y_continuous(labels = NULL, breaks = NULL, expand = expansion(mult = c(0, 0.1))) +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+
+ggsave(file.path(file_path, "Pico/Outputs/employment_bar_chart.png"), width = 14, height = 6, dpi = 300)
 
 
 ##Gender##
