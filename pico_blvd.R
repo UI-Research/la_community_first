@@ -20,12 +20,8 @@ library(stringr)
 library(geofacet)
 #used for shapefile functions
 library(sf)
-
 #used for street data
 library(osmdata)
-
-# options(tigris_use_cache = TRUE)
-
 
 #used to pull urban theme template
 library(urbnthemes)
@@ -48,7 +44,7 @@ write.csv(v23, file.path(file_path, "Fileshare", "census_variables.csv"), row.na
 
 ###load in shapefiles###
 
-##census tracts##
+##census tracts and shapefiles##
 CA_tracts <- st_read(file.path(file_path, "Hoover/Mapping/CA_census_Tracts.shp"))
 la_tracts <- CA_tracts %>% filter(COUNTYFP == "037")
 la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.shp"))
@@ -98,28 +94,24 @@ sex_by_age <- get_acs(
   county = county_fips,
   year = 2023,
   survey = "acs5",
-  geometry = FALSE
+  geometry = TRUE
 )
 
+#save
 write.csv(sex_by_age, file.path(file_path, "Fileshare", "sex_by_age.csv"), row.names = FALSE)
 
 #restructure so that each row is a census tract
-##ADD geometry##
 pop_wide_pico <- sex_by_age %>%
-  select(GEOID, variable, estimate, moe) %>%
-  filter(variable == "B01001_001", GEOID %in% pico_tracts$GEOID)%>%
-  pivot_wider(names_from = variable, values_from = estimate)%>%
-  rename(population = B01001_001)
-
+  select(GEOID, variable, estimate, geometry) %>%
+  filter(variable == "B01001_001", GEOID %in% pico_tracts$GEOID) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>%
+  rename_with(~ "population", .cols = "B01001_001")
 
 #add census tracts
-pop_wide_pico <- left_join(pico_tracts, pop_wide_pico, by = "GEOID")
+pop_wide_pico <- left_join(pico_tracts, st_drop_geometry(pop_wide_pico), by = "GEOID")
 
-#confirm that this is a shapefile
-sf::st_geometry(age_wide_pico)
-
-#data - get the total population
-totalpop <- sum(age_wide_pico$population)
+#for data - get the total population
+totalpop <- sum(pop_wide_pico$population)
 
 #create a histogram
 population_histogram_pico <- ggplot(pop_wide_pico, aes(x = population)) +
@@ -130,9 +122,8 @@ population_histogram_pico <- ggplot(pop_wide_pico, aes(x = population)) +
     y = "Census Tracts"
   )
 
+#save
 ggsave(file.path(file_path, "Pico/Outputs/population_histogram_pico.png"), width = 8, height = 6, dpi = 300)
-
-#add geometry from census tracts to create a map
 
 #create map of population
 population_map_pico <- ggplot(pop_wide_pico) +
@@ -193,6 +184,7 @@ age_wide_pico <- sex_by_age %>%
 
 #calculate the total age 
 age_totals <- age_wide_pico %>%
+  st_drop_geometry() %>%
   summarise(across(starts_with("age_"), ~sum(.x, na.rm = TRUE))) %>%
   pivot_longer(
     cols = everything(),
@@ -223,7 +215,7 @@ pop_by_age_group <- ggplot(age_totals, aes(x = age_group, y = population, fill =
   axis.text.x = element_text(size = 16),
   axis.text.y = element_text(size = 16))
   
-
+#save
 ggsave(file.path(file_path, "Pico/Outputs/age_chart_pico.png"), width = 14, height = 6, dpi = 300)
 
 
@@ -381,6 +373,7 @@ ethnicity_long <- ethnicity_wide_pico %>%
                    pct_hispanic = "Hispanic")
   )
 
+#create a barchart
 ethnicity_chart_pico <- ggplot(ethnicity_long, aes(x = reorder(group, -percent), y = percent, fill = group)) +
   geom_bar(stat = "identity") +
   labs(
@@ -397,6 +390,7 @@ ethnicity_chart_pico <- ggplot(ethnicity_long, aes(x = reorder(group, -percent),
     axis.text.x = element_text(size = 16),
     axis.text.y = element_text(size = 16))
 
+#save
 ggsave(file.path(file_path, "Pico/Outputs/ethnicity_chart_pico.png"), width = 14, height = 6, dpi = 300)
 
 
@@ -413,6 +407,7 @@ median_income <-
     geometry = TRUE
   )
 
+#save
 write.csv(median_income, file.path(file_path, "Fileshare", "median_income.csv"), row.names = FALSE)
 
 ##Map of median incomes by Census Tract
@@ -423,6 +418,7 @@ income_wide_pico <- median_income %>%
   mutate(income = estimate) %>%
   select(GEOID, income, NAME, moe, geometry)
 
+#create a map based on incomes
 income_map_pico <- ggplot(income_wide_pico) +
   geom_sf(aes(fill = income), show.legend = TRUE) +
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
@@ -440,6 +436,7 @@ income_map_pico <- ggplot(income_wide_pico) +
     legend.key.width = unit(0.6, "cm")
   )
 
+#save
 ggsave(file.path(file_path, "Pico/Outputs/income_map_pico.png"), width = 14, height = 6, dpi = 300)
 
 
@@ -455,7 +452,7 @@ poverty_level <-
     geometry = TRUE
     )
 
-
+#save
 write.csv(poverty_level, file.path(file_path, "Fileshare", "poverty_level.csv"), row.names = FALSE)
 
 #edit table so that each row is a census tract and we can calculate the share
@@ -520,7 +517,7 @@ employment_status <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = TRUE,
+    geometry = FALSE,
   )
 
 write.csv(employment_status, file.path(file_path, "Fileshare", "employment_status.csv"), row.names = FALSE)
@@ -587,11 +584,80 @@ employment_bar_chart <- ggplot(
     panel.grid.minor.y = element_blank()
   )
 
+#save
 ggsave(file.path(file_path, "Pico/Outputs/employment_bar_chart.png"), width = 14, height = 6, dpi = 300)
 
 
 ##Gender##
 #see sex_by_age
+
+#pivot to take Total Male and Total Female population
+gender__wide_pico <- sex_by_age %>%
+  filter(
+    variable %in% c("B01001_001", "B01001_002", "B01001_026"),
+    GEOID %in% pico_tracts$GEOID
+  ) %>%
+  select(GEOID, variable, estimate) %>%
+  group_by(GEOID) %>%
+  summarise(
+    Total = sum(estimate[variable == "B01001_001"], na.rm = TRUE),
+    Male = sum(estimate[variable == "B01001_002"], na.rm = TRUE),
+    Female = sum(estimate[variable == "B01001_026"], na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  left_join(
+    sex_by_age %>% select(GEOID, NAME) %>% distinct(),
+    by = "GEOID"
+  ) %>%
+  mutate(
+    share_male = Male / Total,
+    share_female = Female / Total
+  ) %>%
+  #Add total row
+  bind_rows(
+    summarise(
+      .,
+      GEOID = "Total",
+      NAME = "Total",
+      Total = sum(Total, na.rm = TRUE),
+      Male = sum(Male, na.rm = TRUE),
+      Female = sum(Female, na.rm = TRUE),
+      share_male = sum(Male, na.rm = TRUE) / sum(Total, na.rm = TRUE),
+      share_female = sum(Female, na.rm = TRUE) / sum(Total, na.rm = TRUE)
+    )
+  )
+
+#create figure
+gender_bar_chart_pico <- ggplot(
+  tibble(
+    status = c("Male", "Female"),
+    share = c(
+      gender__wide_pico$share_male[gender__wide_pico$GEOID == "Total"],
+      gender__wide_pico$share_female[gender__wide_pico$GEOID == "Total"]
+    )
+  ),
+  aes(x = status, y = share, fill = status)
+) +
+  geom_col() + 
+  geom_text(aes(label = scales::percent(share, accuracy = 1)), vjust = -0.5, size = 6) + 
+  labs(
+    title = NULL,
+    x = NULL,
+    y = NULL,
+    fill = NULL
+  ) +
+  scale_y_continuous(labels = scales::percent_format(), expand = expansion(mult = c(0, 0.1))) +
+  theme(
+    legend.position = "none", 
+    axis.text.x = element_text(size = 16),  
+    axis.text.y = element_blank(),  
+    axis.ticks.y = element_blank(),  
+    panel.grid.major.y = element_blank(),  
+    panel.grid.minor.y = element_blank()  
+  )
+
+#save
+ggsave(file.path(file_path, "Pico/Outputs/gender_bar_chart_pico.png"), width = 14, height = 6, dpi = 300)
 
 
 ##Family structure##
@@ -607,7 +673,70 @@ family_structure <-
     geometry = FALSE,
   )
 
+#save
 write.csv(family_structure, file.path(file_path, "Fileshare", "family_structure.csv"), row.names = FALSE)
+
+#pivot to get descriptive stats
+family_bins <- list(
+  married_children = "B11003_003",
+  married_no_children = "B11003_007",
+  single_children = c("B11003_010", "B11003_016"),
+  single_no_children = c("B11003_014", "B11003_020")
+)
+
+
+#summarise total by family structure, for each tract
+# Pivot family_structure data wider
+family_wide_pico <- family_structure %>%
+  filter(variable %in% unlist(family_bins), GEOID %in% pico_tracts$GEOID) %>%
+  mutate(family_structure = case_when(
+    variable %in% family_bins$married_children ~ "Married with children under 18",
+    variable %in% family_bins$married_no_children ~ "Married without children under 18",
+    variable %in% family_bins$single_children ~ "Single parent with children under 18",
+    variable %in% family_bins$single_no_children ~ "Single parent without children under 18",
+    TRUE ~ NA_character_ 
+  )) %>%
+    filter(!is.na(family_structure)) %>%
+  group_by(GEOID, family_structure) %>%
+  summarise(population = sum(estimate, na.rm = TRUE), .groups = "drop") %>%
+  # Pivot the data wider to have family types as columns
+  pivot_wider(names_from = family_structure, values_from = population, values_fill = list(population = 0)) %>%
+    left_join(select(family_structure, GEOID, NAME) %>% distinct(), by = "GEOID")
+
+
+#calculate the totals 
+family_totals <- family_wide_pico %>%
+  summarise(across(starts_with("Married"), ~sum(.x, na.rm = TRUE)), 
+            across(starts_with("Single"), ~sum(.x, na.rm = TRUE))) %>%
+  # Reshape the data to a long format for easier analysis
+  pivot_longer(
+    cols = everything(),
+    names_to = "family_structure",
+    values_to = "population"
+  )
+
+
+#create a bar chart
+pop_by_family_type_pico <- ggplot(family_totals, aes(x = family_structure, y = population, fill = family_structure)) +
+  geom_col() +
+  geom_text(aes(label = scales::comma(population)), vjust = -0.5, size = 5) +
+  labs(
+    x = NULL,
+    y = "Population"
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 16)) + 
+  theme(legend.position = "none") +
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+#save
+ggsave(file.path(file_path, "Pico/Outputs/pop_by_family_type_pico.png"), width = 14, height = 6, dpi = 300)
 
 ###Language Access and Cultural Considerations### - Gabe
 
@@ -621,14 +750,287 @@ language <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = FALSE,
+    geometry = TRUE,
   )
 
+#save
 write.csv(language, file.path(file_path, "Fileshare", "language.csv"), row.names = FALSE)
+
+#create bins based on the table
+language_bins <- list(
+  very_well = c("B16004_005", "B16004_010", "B16004_015", "B16004_020", "B16004_027", "B16004_032", "B16004_037", "B16004_042", "B16004_049", "B16004_054", "B16004_059", "B16004_064"),
+  well = c("B16004_006", "B16004_011", "B16004_016", "B16004_021", "B16004_028", "B16004_033", "B16004_038", "B16004_043", "B16004_050", "B16004_055", "B16004_060", "B16004_065"),
+  not_well = c("B16004_007", "B16004_012", "B16004_017", "B16004_022", "B16004_029", "B16004_034", "B16004_039", "B16004_044", "B16004_051", "B16004_056", "B16004_061", "B16004_066"),
+  none =c("B16004_008", "B16004_013", "B16004_018", "B16004_023", "B16004_030", "B16004_035", "B16004_040", "B16004_045", "B16004_052", "B16004_057", "B16004_062", "B16004_067")
+)
+
+#summarise total by language, for each tract
+# Pivot  data wider
+language_wide_pico <- language %>%
+  filter(variable %in% unlist(language_bins), GEOID %in% pico_tracts$GEOID) %>%
+  mutate(language_skill = case_when(
+    variable %in% language_bins$very_well ~ "Very well",
+    variable %in% language_bins$well ~ "Well",
+    variable %in% language_bins$not_well ~ "Not well",
+    variable %in% language_bins$none ~ "Not at all",
+    TRUE ~ NA_character_  
+  )) %>%
+  filter(!is.na(language_skill)) %>%
+  group_by(GEOID, language_skill) %>%
+  summarise(population = sum(estimate, na.rm = TRUE), .groups = "drop") %>%
+  # Pivot the data wider to have language skills as columns
+  pivot_wider(names_from = language_skill, values_from = population, values_fill = list(population = 0)) %>%
+  left_join(select(language, GEOID, NAME) %>% distinct(), by = "GEOID")
+
+#calculate totals for bar chart
+language_totals <- language_wide_pico %>%
+  select(-GEOID, -NAME) %>%
+  summarise(across(everything(), ~sum(.x, na.rm = TRUE))) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "language_skill",
+    values_to = "population"
+  )
+
+#reorder so that the bars show up in the order we want
+language_totals$language_skill <- factor(
+  language_totals$language_skill,
+  levels = c("Very well", "Well", "Not well", "Not at all")
+)
+
+#create a bar chart
+pop_by_language_skill_pico <- ggplot(language_totals, aes(x = language_skill, y = population, fill = language_skill)) +
+  geom_col() +
+  geom_text(aes(label = scales::comma(population)), vjust = -0.5, size = 5) +
+  labs(
+    x = NULL,
+    y = "Population"
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 16)) + 
+  theme(legend.position = "none") +
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_blank(), 
+    axis.ticks.y = element_blank()
+  )
+
+#save
+ggsave(file.path(file_path, "Pico/Outputs/pop_by_language_skill_pico.png"), width = 14, height = 6, dpi = 300)
+
+#repeat the above but calculating percentages
+# Calculate percentages for each language skill category
+language_totals_pct <- language_wide_pico %>%
+  select(-GEOID, -NAME) %>%
+  summarise(across(everything(), ~sum(.x, na.rm = TRUE))) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "language_skill",
+    values_to = "population"
+  ) %>%
+  mutate(
+    percent = population / sum(population)
+  )
+
+# Reorder the factor levels
+language_totals_pct$language_skill <- factor(
+  language_totals_pct$language_skill,
+  levels = c("Very well", "Well", "Not well", "Not at all")
+)
+
+# Plot as a percentage bar chart
+pop_by_language_skill_pct_pico <- ggplot(language_totals_pct, aes(x = language_skill, y = percent, fill = language_skill)) +
+  geom_col() +
+  geom_text(aes(label = scales::percent(percent, accuracy = 1)), vjust = -0.5, size = 5) +  # Percent labels
+  labs(
+    x = NULL,
+    y = NULL
+  ) +
+  scale_y_continuous(labels = NULL, breaks = NULL, expand = expansion(mult = c(0, 0.1))) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 16)) + 
+  theme(legend.position = "none") +
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+#save
+ggsave(file.path(file_path, "Pico/Outputs/pop_by_language_skill_pct_pico.png"), width = 14, height = 6, dpi = 300)
 
 
 ##Other languages spoken in the area##
 #see language
+
+#create bins for each language spoken
+language_bins_1 <- list(
+  total = "B16004_001",
+  only_english = c("B16004_003", "B16004_025", "B16004_047"),
+  spanish = c("B16004_004", "B16004_026", "B16004_048"),
+  other_indo_euro = c("B16004_009", "B16004_031", "B16004_053"),
+  asian_pac_island =c("B16004_014", "B16004_036", "B16004_058"),
+  other_language = c("B16004_19", "B16004_041", "B16004_063")
+)
+
+#summarise total by language, for each tract
+# Pivot  data wider
+spoken_language_wide_pico <- language %>%
+  filter(variable %in% unlist(language_bins_1), GEOID %in% pico_tracts$GEOID) %>%
+  mutate(language_spoken = case_when(
+    variable %in% language_bins_1$total ~ "Total",
+    variable %in% language_bins_1$only_english ~ "English Only",
+    variable %in% language_bins_1$spanish ~ "Spanish",
+    variable %in% language_bins_1$other_indo_euro ~ "Other Indo-European Languages",
+    variable %in% language_bins_1$asian_pac_island ~ "Asian and Pacific Island Languages",
+    variable %in% language_bins_1$other_language ~ "Other Languages",
+    TRUE ~ NA_character_
+  )) %>%
+  filter(!is.na(language_spoken)) %>%
+  group_by(GEOID, language_spoken) %>%
+  summarise(population = sum(estimate, na.rm = TRUE), .groups = "drop") %>%
+  # Pivot wider to get one column per language
+  pivot_wider(names_from = language_spoken, values_from = population, values_fill = list(population = 0)) %>%
+  mutate(
+    share_english_only = `English Only` / Total,
+    share_spanish = Spanish / Total,
+    share_other_indo_euro = `Other Indo-European Languages` / Total,
+    share_asian_pac_island = `Asian and Pacific Island Languages` / Total,
+    share_other_language = `Other Languages` / Total
+  ) %>%
+  left_join(select(language, GEOID, NAME) %>% distinct(), by = "GEOID")
+
+#calculate totals for bar chart
+language_spoken_totals <- spoken_language_wide_pico %>%
+  select(-GEOID, -NAME) %>%
+  summarise(across(everything(), ~sum(.x, na.rm = TRUE))) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "language_spoken",
+    values_to = "population"
+  )
+
+#reorder so that the bars show up in the order we want
+language_spoken_totals$language_spoken <- factor(
+  language_spoken_totals$language_spoken,
+  levels = c("English Only", "Spanish", "Other Indo-European Languages", "Asian and Pacific Island Languages", "Other Languages")
+)
+
+#create a bar chart
+pop_by_language_spoken_pico <- ggplot(language_spoken_totals, aes(x = language_spoken, y = population, fill = language_spoken)) +
+  geom_col() +
+  geom_text(aes(label = scales::comma(population)), vjust = -0.5, size = 5) +
+  labs(
+    x = NULL,
+    y = "Population"
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 16)) + 
+  theme(legend.position = "none") +
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+#save
+ggsave(file.path(file_path, "Pico/Outputs/pop_by_language_spoken_pico.png"), width = 14, height = 6, dpi = 300)
+
+#replicate in case we want percentages
+# Calculate percentages for each language spoken category
+language_spoken_totals_pct <- spoken_language_wide_pico %>%
+  select(-GEOID, -NAME) %>%
+  summarise(across(everything(), ~sum(.x, na.rm = TRUE))) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "language_spoken",
+    values_to = "population"
+  ) %>%
+  mutate(
+    percent = population / sum(population)
+  )
+
+# Reorder the factor levels
+language_spoken_totals_pct$language_spoken <- factor(
+  language_spoken_totals_pct$language_spoken,
+  levels = c("English Only", "Spanish", "Other Indo-European Languages", "Asian and Pacific Island Languages", "Other Languages")
+)
+
+# Plot as a percentage bar chart
+pop_by_language_spoken_pct_pico <- ggplot(language_spoken_totals_pct, aes(x = language_spoken, y = percent, fill = language_spoken)) +
+  geom_col() +
+  geom_text(aes(label = scales::percent(percent, accuracy = 1)), vjust = -0.5, size = 5) +
+  labs(
+    x = NULL,
+    y = NULL
+  ) +
+  scale_y_continuous(labels = NULL, breaks = NULL, expand = expansion(mult = c(0, 0.1))) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 16)) + 
+  theme(legend.position = "none") +
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
+
+#save
+ggsave(file.path(file_path, "Pico/Outputs/pop_by_language_spoken_pct_pico.png"), width = 14, height = 6, dpi = 300)
+
+#create a map
+spoken_language_wide_pico_sf <- spoken_language_wide_pico %>%
+  left_join(select(pico_tracts, GEOID, geometry), by = "GEOID") %>%
+  st_as_sf()
+
+spanish_map_pico <- ggplot(spoken_language_wide_pico_sf) +
+  geom_sf(aes(fill = share_spanish), show.legend = TRUE) +
+  #add the buffer overlay
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
+  #add the street overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
+  scale_fill_gradientn(
+    colors = palette_urbn_magenta[c(1, 3, 5, 7)], 
+    name = NULL,
+    labels = scales::percent_format()
+  ) +
+  theme_urbn_map()+  
+  theme(
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 16),
+    legend.key.height = unit(1.2, "cm"),
+    legend.key.width = unit(0.6, "cm")
+  )  
+
+#save
+ggsave(file.path(file_path, "Pico/Outputs/spanish_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+
+api_map_pico <- ggplot(spoken_language_wide_pico_sf) +
+  geom_sf(aes(fill = share_asian_pac_island), show.legend = TRUE) +
+  #add the buffer overlay
+  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
+  #add the street overlay
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
+  scale_fill_gradientn(
+    colors = palette_urbn_magenta[c(2, 4, 6, 8)],
+    name = NULL,
+    labels = scales::percent_format()
+  ) +
+  theme_urbn_map()+  
+  theme(
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 16),
+    legend.key.height = unit(1.2, "cm"),
+    legend.key.width = unit(0.6, "cm")
+  )  
+
+#save
+ggsave(file.path(file_path, "Pico/Outputs/api_map_pico.png"), width = 14, height = 6, dpi = 300)
+
 
 ##Country of origin##
 #pull from acs
@@ -644,6 +1046,33 @@ country_origin <-
   )
 
 write.csv(country_origin, file.path(file_path, "Fileshare", "country_origin.csv"), row.names = FALSE)
+
+#create a table that generates the totals for each country of origin variable to see manually which countries have the highest populations
+
+
+# country_of_origin_totals <- country_origin %>%
+#   filter(GEOID %in% pico_tracts$GEOID) %>%
+#   group_by(variable) %>%
+#   summarise(total = sum(estimate, na.rm = TRUE), .groups = "drop")
+
+#after reviewing the table above, edit to manually pull out the highest (in this case I chose the top countries with more than 1,000). This is done manually because some of the variables include 'Total', 'Asia', 'Central America', etc.
+country_origin_filtered_pico <- country_origin %>%
+  filter(
+    GEOID %in% pico_tracts$GEOID
+  ) %>%
+  mutate(country = case_when(
+    variable == "B05006_158" ~ "Guatemala",
+    variable == "B05006_157" ~ "El Salvador",
+    variable == "B05006_160" ~ "Mexico",
+    variable == "B05006_054" ~ "Korea",
+    variable == "B05006_049" ~ "China",
+    variable == "B05006_074" ~ "Phillipnes",
+    variable == "B05006_159" ~ "Honduras",
+  )) %>%
+  group_by(country) %>%
+  summarise(total = sum(estimate, na.rm = TRUE), .groups = "drop")
+
+write.csv(country_origin_filtered_pico, file.path(file_path, "Fileshare", "country_origin_filtered_pico.csv"), row.names = FALSE)
 
 
 ###Other Accessibility Considerations### - Teddy
@@ -861,8 +1290,33 @@ ht_index <- read.csv(file.path(file_path, "Data/htaindex2022_data_tracts_06.csv"
 
 ##Bike score
 
-##Collisions - not sure about best data here
+##Collisions
 
+#load in data from TIMS
+crashes_pico <- read.csv(file.path(file_path, "Pico/Outputs/crash_data_pico_blvd.csv"))
 
+#convert to an SF
+crashes_pico_sf <- st_as_sf(
+  crashes_pico,
+  coords = c("POINT_X", "POINT_Y"),
+  crs = 4326,  # EPSG:4326 = WGS 84 (standard lat/lon)
+  remove = FALSE  # keeps Point_X and Point_Y columns too
+)
 
+#create map with points overlaid
+crash_map_pico <- ggplot() +
+  geom_sf(data = pico_buffer_tracts, fill = "lightgray", color = "gray40", size = 0.3) +
+  geom_sf(data = major_streets_clipped, color = "orange", size = 0.6) +
+  geom_sf(data = crashes_pico_sf, color = "red", size = 1, alpha = 0.7) +
+  # labs(title = "Crash Locations in Pico Area",
+  #      subtitle = "Overlaid on Buffer Tracts and Major Streets",
+  #      caption = "Source: TIMS") +
+  theme_urbn_map()+
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    plot.subtitle = element_text(size = 12)
+  )
+
+#save
+ggsave(file.path(file_path, "Pico/Outputs/crash_map_pico.png"), width = 14, height = 6, dpi = 300)
 
