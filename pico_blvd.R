@@ -342,7 +342,7 @@ print(plot) #view map
 ggsave(file.path(file_path, "Pico/Outputs/hearing_diff_map_pico.png"), width = 14, height = 6, dpi = 300)
 
 
-####pull vision difficulty status####
+#### pull vision difficulty status data ####
 vision_diff <- 
   get_acs(
     geography = "tract",
@@ -409,7 +409,7 @@ print(plot) #view map
 
 ggsave(file.path(file_path, "Pico/Outputs/vision_diff_map_pico.png"), width = 14, height = 6, dpi = 300)
 
-## ambulatory difficulty ##
+#### pulling ambulatory difficulty data ####
 ambulatory_diff <-
   get_acs(
     geography = "tract",
@@ -431,7 +431,6 @@ ambulatory_diff <-
   select(GEOID,total, total_ambulatory_diff, share_ambulatory_diff)%>% #reducing df to necessary variables
   filter(GEOID %in% pico_tracts$GEOID) #limiting to pico tracts
 
-#write.csv(ambulatory_diff, file.path(file_path, "Fileshare", "ambulatory_diff.csv"), row.names = FALSE) ###ignore this line
 
 #add geometry for map
 st_geometry(ambulatory_diff) <- st_geometry(pico_tracts[match(ambulatory_diff$GEOID, pico_tracts$GEOID), ])
@@ -465,6 +464,7 @@ plot <-ggplot()+
 
 print(plot) #view map
 
+# save
 ggsave(file.path(file_path, "Pico/Outputs/ambulatory_diff_map_pico.png"), width = 14, height = 6, dpi = 300)
 
 
@@ -542,7 +542,7 @@ ggsave(file.path(file_path, "Pico/Outputs/internet_access_map_pico.png"), width 
 
 
 
-### pull computer access data
+### pull tech access data ###
 tech_access <-
   get_acs(
     geography = "tract",
@@ -554,7 +554,7 @@ tech_access <-
     county = county_fips,
     year = 2023,
     survey = "acs5",
-    geometry = FALSE, #change back to TRUE to make a map
+    geometry = FALSE,
   )%>%
   select(GEOID, variable, estimate) %>%
   pivot_wider(names_from = variable, values_from = estimate)%>% #pivoting
@@ -582,7 +582,7 @@ plot <-ggplot()+
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0, lwd = 1) + # Adding the buffer zone as a transparent overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
-    values = palette_urbn_cyan[c(1,3,6,8)], #can adjust the palette or color scheme as necessary
+    values = palette_urbn_cyan[c(1,3,6,8)],
     name = "Share of households without access to a device",
     breaks = c("Less than 1%", "1-5%", "5-10%", "10% or higher")
   )+
