@@ -71,7 +71,7 @@ county_fips <- "037"
 ###load list of 2023 acs variables
 v23 <- load_variables(2023, "acs5", cache = TRUE)
 
-########################Demographic Profile#########################
+######################## Demographic Profile #########################
 
 ##Population##
 #pull population table from ACS
@@ -169,7 +169,7 @@ family_structure <-
     geometry = FALSE, #change to TRUE for maps
   )
 
-##################Language Access and Cultural Considerations#######################
+################## Language Access and Cultural Considerations #######################
 
 ##Limited English##
 #pull from acs
@@ -200,10 +200,10 @@ country_origin <-
     geometry = FALSE,
   )
 
-########################Other Accessibility Considerations########################
+######################## Other Accessibility Considerations ########################
 
-##Disability Status##
-#pull disability status 
+## Disability Status ##
+#pulling disability status data
 disability <- 
   get_acs(
     geography = "tract",
