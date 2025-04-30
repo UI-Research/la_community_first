@@ -1,0 +1,336 @@
+```{r}
+#| label: setup
+
+library(tidyverse)
+library(tidycensus)
+library(readxl)
+library(openxlsx)
+library(geofacet)
+library(sf)
+library(osmdata)
+# renv::install("UI-Research/urbnindicators")
+library(urbnindicators)
+library(urbnthemes)
+
+options(scipen=999)
+set_urbn_defaults(style="print")
+
+username = getwd() %>% str_split("\\/") %>% unlist %>% .[3]
+file_path <- file.path("C:", "Users", username, "Box", "LA Transit project/Social Climate Analysis")
+```
+
+Iterate over your various geographies and produce figures specific to each geography by changing a single parameter:
+```{r}
+#| label: geography-of-interest
+
+geography = "pico"
+```
+
+Now we use the geography value to control the data we analyze and visualize
+```{r}
+#| label: get-data
+
+## this pulls in most (but not all) of the variables you want
+## for more, see here: https://ui-research.github.io/urbnindicators/
+## note that much of this code is not fully code reviewed, so if you want to use it
+## you should still do some manual benchmarking to validate (and if you do, please let me
+## know about any errors you catch so I can update the code accordingly!)
+df1 = urbnindicators::compile_acs_data(
+  years = 2023,
+  geography = "tract",
+  states = "CA",
+  spatial = TRUE)
+
+## if you have spatial files, much better to use those to define relevant GEOIDs rather than
+## doing this manually!
+tract_index = tribble(
+  ~area, ~GEOID,
+  "pico", "06037213201",
+  "pico", "06037213202",
+  "pico", "06037213310",
+  "pico", "06037213320",
+  "pico", "06037213401",
+  "pico", "06037213402",
+  "pico", "06037217200",
+  "pico", "06037218110",
+  "pico", "06037218220",
+  "pico", "06037218800",
+  "pico", "06037224410",
+  "pico", "06037209401",
+  "pico", "06037221120",
+  "pico", "06037221210",
+  "pico", "06037221220",
+  "pico", "06037207711",
+  "pico", "06037207901",
+  "pico", "06037207902",
+  "pico", "06037221302",
+  "pico", "06037221602",
+  "pico", "06037209402",
+  "pico", "06037224310",
+  "pico", "06037209810",
+  "pico", "06037221303",
+  "pico", "06037209300",
+  "pico", "06037209510",
+  "pico", "06037221110",
+  "pico", "06037218120",
+  "pico", "06037209403",
+  "pico", "06037209820",
+  "pico", "06037209520",
+  "pico", "06037221304",
+  "pico", "06037212502",
+  "pico", "06037212702",
+  "pico", "06037221402",
+  "pico", "06037212701",
+  "pico", "06037224010",
+  "pico", "06037224020",
+  "pico", "06037212620",
+  "pico", "06037212800",
+  "pico", "06037212900",
+  "pico", "06037213100",
+  "pico", "06037224200",
+  "pico", "06037224320",
+  "pico", "06037224420")
+
+## assuming you've loaded objects called "pico_tracts", "hoover_tracts", etc.
+df = df1 %>%
+  filter(GEOID %in% (tract_index %>% filter(area == !!geography) %>% pull(GEOID))) %>%
+
+```
+
+If you want to stick with your existing code--which is great!--you might consider consolidating
+so that you can more efficiently function-alize some of your work. This might look like this:
+```{r}
+#| label: get-data-alternate
+# OLD CODE
+# country_origin <- 
+#   get_acs(
+#     geography = "tract",
+#     table = "B05006",
+#     state = state_fips,
+#     county = county_fips,
+#     year = 2023,
+#     survey = "acs5",
+#     geometry = FALSE)
+# 
+# 
+#   get_acs(
+#     geography = "tract",
+#     table = "B03002",
+#     state = state_fips,
+#     county = county_fips,
+#     year = 2023,
+#     survey = "acs5",
+#     geometry = FALSE
+#   )
+# 
+#     get_acs(
+#     geography = "tract",
+#     variables = c(
+#       total_pop = "B18102_001", 
+#       v1="B18102_004", 
+#       v2="B18102_007", 
+#       v3="B18102_010", 
+#       v4="B18102_013", 
+#       v5="B18102_016", 
+#       v6="B18102_019",
+#       v7="B18102_023", 
+#       v8="B18102_026", 
+#       v9="B18102_029", 
+#       v10="B18102_032", 
+#       v11="B18102_035", 
+#       v12="B18102_038"
+#     ),
+#     state = state_fips,
+#     county = county_fips,
+#     year = 2023,
+#     survey = "acs5",
+#     geometry = FALSE
+#   ) 
+  
+## CONSOLIDATED CODE
+df1_alternate = tidycensus::get_acs(
+  geography = "tract",
+  state = "CA",
+  year = 2023,
+  ## NOTE! this gives you variables as columns rather than as rows
+  output = "wide",
+  variables = c(
+    # country of origin
+    ## https://ui-research.github.io/urbnindicators/reference/select_variables_by_name.html
+    urbnindicators::select_variables_by_name(census_codebook = v23, variable_name = "B05006_"),
+    # ethnicity
+    select_variables_by_name(census_codebook = v23, variable_name = "B03002_"),
+    # hearing difficult
+    select_variables_by_name(
+      census_codebook = v23, 
+      variable_name = "B18102_(001|004|007|010|013|016|019|023|026|029|032|035|038)")))
+
+df2_alternate = df1_alternate %>%
+  select(-matches("_M$")) %>%
+  rename_with(.cols = everything(), .fn = ~str_replace(., "_E$", ""))
+```
+
+```{r}
+#| label: define geographies of interest
+
+ca_tracts <- st_read(file.path(file_path, "Hoover/Mapping/CA_census_Tracts.shp"))
+la_tracts <- ca_tracts %>% filter(COUNTYFP == "037")
+##WCG: what is this?
+la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.shp"))
+
+#pico tracts
+pico_buffer_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"))
+pico_tracts <- la_shp %>%
+  filter(GEOID %in% pico_buffer_tracts$GEOID)
+
+#streets
+#create specific set of streets we want to see
+bbox <- st_bbox(pico_tracts)
+#load in
+streets <- opq(bbox = bbox) %>%
+  add_osm_feature(key = "highway") %>%  # 'highway' includes roads, streets, etc.
+  osmdata_sf()
+
+#extract just streets
+streets_lines <- streets$osm_lines
+
+#filter to main streets
+major_streets <- streets_lines %>%
+  filter(highway %in% c("primary", "secondary", "tertiary")) %>%
+  st_transform(st_crs(pico_tracts))
+
+#create a version that clips the streets to the focus area
+major_streets_clipped <- st_intersection(major_streets, st_union(st_geometry(pico_tracts)))
+
+buffer = pico_buffer_tracts %>% 
+  group_by() %>%
+  summarize()
+```
+
+You can also adopt the function-based plotting approach below for the data as you currently have it structured,
+though it might require a bit more tweaking. Generally, this can be really advantageous because:
+
+- You only have to make changes in one place -- this function -- if you want to systematically
+alter all your plots
+- You can easily add new arguments to the function to control things like color, size, etc.
+- You can easily add additional layers (e.g., a basemap, labels, county outlines, etc.)
+- You can produce all of your maps/plots by using `purrr::pmap()` to iterate over the variables you want to plot
+And then you can use this same approach to produce all your plots, for all your places, with both of your desired file extensions
+```{r}
+#| label: plotting utility functions
+
+map_variable = function(
+    data = df, 
+    variable, 
+    legend_label, 
+    label_format = scales::comma,
+    scale_type = 
+    save = FALSE,
+    fig_width = 6.5,
+    fig_height = 4, 
+    file_extension = ".png") {
+  
+  plot = data %>%
+    ggplot() + 
+      ## .data[[variable]] allows you to programmatically access a column using a string
+      geom_sf(data = df, aes(fill = .data[[variable]]), color = NA) +
+      #add the street overlay
+      geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
+      geom_sf(data = data, color = "white", fill = NA, size = .75) +
+      ## add the corridor buffer
+      geom_sf(data = buffer, color = "yellow", alpha = 0.2, lwd = 1, fill = NA) +
+      theme_urbn_map() +
+      scale_fill_binned(labels = label_format) +
+      labs(fill = legend_label)
+  
+  
+  
+  if (isTRUE(save)) {
+    ggsave(
+      plot = plot,
+      filename = str(variable, "_", area, file_extension),
+      path = file.path(file_path, "outputs"),
+      width = fig_width,
+      height = fig_height,
+      dpi = 1000,
+      units = "in") }
+  
+  return(plot)
+}
+
+
+```
+
+```{r}
+#| label: population
+map_variable(variable = "total_population_universe", legend_label = "Total Population") %>% print()
+
+## or, iterating
+
+plot_metadata1 = tribble(
+  ~ variable, ~legend_label, ~file_extension,
+  "total_population_universe", "Total Population", ".png",
+  "median_household_income_universe_allraces", "Median Income", ".png")
+
+plot_metadata = bind_rows(
+  plot_metadata1,
+  plot_metadata1 %>% mutate(file_extension = ".svg"))
+
+## this iterates over each row in `plot_metadata` and applies each of the columns 
+## from `plot_metadata` as arguments to the parameter of the same name in `map_variable()`
+pmap(
+  plot_metadata,
+  map_variable) %>%
+  print()
+```
+
+```{r}
+#| label: age
+
+df_age = df %>%
+  st_drop_geometry() %>%
+  select(c(
+    GEOID, 
+    matches("sex_by_age"), 
+    ## drop out all of the variables that match "sex_by_age" but aren't relevant
+    -matches("disability|_percent|_cv|_M$"), 
+    -sex_by_age_female, 
+    -sex_by_age_male,
+    -sex_by_age_universe)) %>% 
+  transmute(
+    GEOID, 
+    ## one among many approaches to summing across rows
+    age_0_17 = rowSums(select(., matches("under_5|5_9|10_14|15_17"))),
+    age_18_29 = rowSums(select(., matches("18_19|20|21|22_24|25_29"))),
+    age_30_44 = rowSums(select(., matches("30_34|35_39|40_44"))),
+    age_45_59 = rowSums(select(., matches("45_49|50_54|55_59"))),
+    age_60up = rowSums(select(., matches("60_61|62_64|65_66|67_69|70_74|75_79|80_84|85")))) %>%
+  pivot_longer(-GEOID) %>%
+  group_by(name) %>%
+  summarize(value = sum(value, na.rm = TRUE))
+
+df %>%
+  st_drop_geometry() %>%
+  select(c(
+    GEOID, 
+    matches("sex_by_age"), 
+    ## drop out all of the variables that match "sex_by_age" but aren't relevant
+    -matches("disability|_percent|_cv|_M$"), 
+    -sex_by_age_female, 
+    -sex_by_age_male,
+    -sex_by_age_universe)) %>%
+  transmute(
+    GEOID, 
+    ## one among many approaches to summing across rows
+    age_0_17 = rowSums(select(., matches("under_5|5_9|10_14|15_17"))),
+    age_18_29 = rowSums(select(., matches("18_19|20|21|22_24|25_29"))),
+    age_30_44 = rowSums(select(., matches("30_34|35_39|40_44"))),
+    age_45_59 = rowSums(select(., matches("45_49|50_54|55_59"))),
+    age_60up = rowSums(select(., matches("60_61|62_64|65_66|67_69|70_74|75_79|80_84|85"))))
+
+ggplot() +
+  geom_col(data = df_age, aes(x = name %>% str_replace_all(c("_" = "-", "age-" = "", "up" = "+")), y = value), fill = palette_urbn_main[1]) +
+  theme_urbn_print() +
+  scale_y_continuous(labels = scales::comma) +
+  labs(x = "", y = "Population")
+```
