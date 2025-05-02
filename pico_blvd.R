@@ -41,8 +41,9 @@ v23 <- load_variables(2023, "acs5", cache = TRUE)
 ##WCG: no capital letters in variable names, virtually literally
 ca_tracts <- st_read(file.path(file_path, "Hoover/Mapping/CA_census_Tracts.shp"))
 la_tracts <- ca_tracts %>% filter(COUNTYFP == "037")
-##WCG: what is this?
-la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.shp"))
+
+# if geometry goes down, these are LA tract shapefiles
+# la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.shp"))
 
 #pico tracts
 pico_buffer_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"))
@@ -322,6 +323,8 @@ ethnicity_long <- ethnicity_wide_pico %>%
                    pct_hispanic = "Hispanic")
   )
 
+
+
 ## WCG: might consider shortening the label to something like "Native", "Indigenous", or "AIAN/NHPI"
 #create a barchart
 ethnicity_chart_pico <- ggplot(ethnicity_long, aes(x = reorder(group, -percent), y = percent, fill = group)) +
@@ -358,15 +361,25 @@ country_origin <-
 
 write.csv(country_origin, file.path(file_path, "Fileshare", "country_origin.csv"), row.names = FALSE)
 
-#create a table that generates the totals for each country of origin variable to see manually which countries have the highest populations
+#filter for pico tracts 
+country_origin_filtered_pico <- country_origin %>%
+  filter(GEOID %in% pico_tracts$GEOID)
 
-# country_of_origin_totals <- country_origin %>%
-#   filter(GEOID %in% pico_tracts$GEOID) %>%
-#   group_by(variable) %>%
-#   summarise(total = sum(estimate, na.rm = TRUE), .groups = "drop")
+country_of_origin_totals <- country_origin_filtered_pico %>%
+  group_by(variable) %>%
+  summarise(total = sum(estimate, na.rm = TRUE), .groups = "drop")
+
+##calculate total # share of foreign born
+
+#divide by the total population 
+foreign_value <- country_origin_filtered_pico %>%
+  filter(variable == "B05006_001") %>%
+  summarise(total_estimate = sum(estimate, na.rm = TRUE)) %>%
+  mutate(result = total_estimate / totalpop) %>%
+  pull(result)
 
 #after reviewing the table above, edit to manually pull out the highest (in this case I chose the top countries with more than 1,000). This is done manually because some of the variables include 'Total', 'Asia', 'Central America', etc.
-country_origin_filtered_pico <- country_origin %>%
+country_origin_top_10_pico <- country_origin_filtered_pico %>%
   filter(
     GEOID %in% pico_tracts$GEOID
   ) %>%
@@ -1283,6 +1296,10 @@ print(plot) #view map
 
 ggsave(file.path(file_path, "Pico/Outputs/share_renter_occupied_map_pico.png"), width = 14, height = 6, dpi = 300)
 
+#check overall homeownership for the report
+total_share_owner_occupied <- sum(tenure$owner_occupied) / sum(tenure$total_occupied)
+
+
 ####----Language----####
 
 #pull from acs
@@ -1574,6 +1591,7 @@ api_map_pico <- ggplot(spoken_language_wide_pico_sf) +
 
 #save
 ggsave(file.path(file_path, "Pico/Outputs/api_map_pico.png"), width = 14, height = 6, dpi = 300)
+
 ####----Housing Cost Burden----####
 #pull cost burden data
 
@@ -2384,5 +2402,40 @@ plot <-ggplot()+
 
 ggsave(file.path(file_path, "Pico/Outputs/ht_80ami_map_pico.png"), width = 14, height = 6, dpi = 300)
 
+####----Measure Voting Data---####
+#load the data
+hla_vote <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp"))
+
+#set tracts crs to match that of voting data
+pico_buffer_tracts_1 <- st_transform(pico_buffer_tracts, crs = 4326)
+hla_vote <- st_transform(hla_vote, crs = 4326)
 
 
+#find intersection
+voting_intersection <- st_intersection(pico_buffer_tracts_1, hla_vote)
+
+install.packages("lwgeom")
+library(lwgeom)
+
+voting_map_pico <- ggplot() +
+  geom_sf(data = pico_buffer_tracts_1) +
+  geom_sf(data = voting_intersection, aes(fill = V3_LOS_A_5), color = NA) +
+  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
+  scale_fill_gradientn(
+    colors = palette_urbn_cyan[c(2, 4, 6, 8)], 
+    name = "Share of Votes in Favor",
+    labels = scales::percent_format()
+  ) +
+  theme_urbn_map()+
+  labs(title = NULL)+
+  theme (legend.title = element_text(size = 16),
+         legend.text = element_text(size = 16), 
+         legend.key.height = unit(1.2, "cm"),
+         legend.key.width = unit(0.6, "cm"))
+
+ggsave(file.path(file_path, "Pico/Outputs/voting_map_pico.png"), width = 14, height = 6, dpi = 300)
+
+
+
+
+       
