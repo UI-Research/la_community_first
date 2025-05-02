@@ -588,7 +588,7 @@ ggsave(file.path(file_path, "Pico/Outputs/poverty_map_pico.png"), width = 14, he
 employment_status <-
   get_acs(
     geography = "tract",
-    table = "B23025",
+    table = "B23001",
     state = state_fips,
     county = county_fips,
     year = 2023,
@@ -596,73 +596,62 @@ employment_status <-
     geometry = FALSE,
   )
 
-write.csv(employment_status, file.path(file_path, "Fileshare", "employment_status.csv"), row.names = FALSE)
+write.csv(employment_status, file.path(file_path, "Fileshare", "labor_force.csv"), row.names = FALSE)
 
-#create a new table that lists the employment status (total and share) for each tract
-employment_wide_pico <- employment_status %>%
-  filter(GEOID %in% pico_tracts$GEOID) %>%
-  mutate(employment_stat = case_when(
-    variable == "B23025_001" ~ "total",
-    variable == "B23025_002" ~ "in_labor_force",
-    variable == "B23025_007" ~ "out_labor_force",
+#create employment bins to capture employed vs. unemplyed
+
+employment_bins <- v23 %>%
+  filter(str_starts(name, "B23001")) %>%
+  mutate(employment_status = case_when(
+    str_detect(label, regex("\\bEmployed\\b", ignore_case = FALSE)) ~ "Employed",
+    str_detect(label, "Unemployed") ~ "Unemployed",
+    str_detect(label, "Armed") ~ "Armed Forces",
+    str_detect(label, "Not in labor force") ~ "Not in the Labor Force",
     TRUE ~ NA_character_
   )) %>%
-  filter(!is.na(employment_stat)) %>%
-  select(GEOID, employment_stat, estimate, NAME) %>%
-  pivot_wider(names_from = employment_stat, values_from = estimate) %>%
-  mutate(
-    share_in_labor_force = in_labor_force / total,
-    share_out_labor_force = out_labor_force / total
-  )
+  filter(!is.na(employment_status)) %>%
+  select(variable = name, employment_status) 
 
-#calculate the totals separately
-employment_total_row <- employment_wide_pico %>%
-  summarise(
-    GEOID = "Total",
-    total = sum(total, na.rm = TRUE),
-    in_labor_force = sum(in_labor_force, na.rm = TRUE),
-    out_labor_force = sum(out_labor_force, na.rm = TRUE)
-  ) %>%
-  mutate(
-    share_in_labor_force = in_labor_force / total,
-    share_out_labor_force = out_labor_force / total
-  )
+#create a new table that lists the employment status (total and share) for each tract
 
-#bind to the original table
-employment_wide_pico <- bind_rows(employment_wide_pico, employment_total_row)
+employment_wide_pico <- employment_status %>%
+  filter(variable %in% employment_bins$variable, GEOID %in% pico_tracts$GEOID) %>%
+  left_join(employment_bins, by = "variable") %>%  # bring in employment_status
+  filter(!is.na(employment_status)) %>%
+  group_by(GEOID, employment_status) %>%
+  summarise(population = sum(estimate, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(names_from = employment_status, values_from = population, values_fill = list(population = 0)) %>%
+  left_join(select(employment_status, GEOID, NAME) %>% distinct(), by = "GEOID")
 
-## WCG: this might be simpler as just a statistic--not much to visualize here
-#create a bar chart
-employment_bar_chart <- ggplot(
-  tibble::tibble(
-    status = c("Employed", "Unemployed"),
-    share = c(
-      employment_wide_pico$share_in_labor_force[employment_wide_pico$GEOID == "Total"],
-      employment_wide_pico$share_out_labor_force[employment_wide_pico$GEOID == "Total"]
-    )
-  ),
-  aes(x = status, y = share, fill = status)
-) +
-  geom_col() +
-  geom_text(aes(label = scales::percent(share, accuracy = 1)), vjust = -0.5, size = 6) +
+#restructure for bar chart
+employment_bar_data <- employment_wide_pico %>%
+  select(`Employed`, `Unemployed`, `Not in the Labor Force`) %>%
+  summarise(across(everything(), sum, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "employment_status", values_to = "total") %>%
+  mutate(share = total / sum(total))
+
+#create the bar chart
+employment_bar_chart_pico <- ggplot(employment_bar_data, aes(x = employment_status, y = share, fill = employment_status)) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  geom_col() + 
+  geom_text(aes(label = scales::percent(share, accuracy = 1)), vjust = -0.5, size = 6) + 
   labs(
     title = NULL,
     x = NULL,
     y = NULL,
     fill = NULL
   ) +
-  scale_y_continuous(labels = NULL, breaks = NULL, expand = expansion(mult = c(0, 0.1))) +
   theme(
-    legend.position = "none",
-    axis.text.x = element_text(size = 16),
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank(),
-    panel.grid.major.y = element_blank(),
-    panel.grid.minor.y = element_blank()
+    legend.position = "none", 
+    axis.text.x = element_text(size = 16),  
+    axis.text.y = element_blank(),  
+    axis.ticks.y = element_blank(),  
+    panel.grid.major.y = element_blank(),  
+    panel.grid.minor.y = element_blank()  
   )
 
 #save
-ggsave(file.path(file_path, "Pico/Outputs/employment_bar_chart.png"), width = 14, height = 6, dpi = 300)
+ggsave(file.path(file_path, "Pico/Outputs/employment_bar_chart_pico.png"), width = 14, height = 6, dpi = 300)
 
 
 ####----Gender----####
