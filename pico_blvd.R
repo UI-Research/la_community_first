@@ -7,23 +7,14 @@
 ## note that I've removed things like tidyr, ggplot, etc.--these are contained within the tidyverse
 ## I'd also vote against commenting packages unless they're lesser-used ones, just for readability
 
-#contains analysis packages
 library(tidyverse)
-#used for pulling census data
 library(tidycensus)
-#used for loading/saving excel files
 library(readxl)
-#used for loading/saving excel files
 library(openxlsx)
-#used for maps
 library(geofacet)
-#used for shapefile functions
 library(sf)
-#used for street line
 library(osmdata)
-#used to pull urban theme template
 library(urbnthemes)
-
 options(scipen=999)
 set_urbn_defaults(style="print")
 
@@ -43,7 +34,7 @@ ca_tracts <- st_read(file.path(file_path, "Hoover/Mapping/CA_census_Tracts.shp")
 la_tracts <- ca_tracts %>% filter(COUNTYFP == "037")
 
 # if geometry goes down, these are LA tract shapefiles
-# la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.shp"))
+la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.shp"))
 
 #pico tracts
 pico_buffer_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"))
@@ -135,23 +126,32 @@ ggsave(file.path(file_path, "Pico/Outputs/population_histogram_pico.png"), width
 #create map of population
 population_map_pico <- ggplot(pop_wide_pico) +
   geom_sf(aes(fill = population), show.legend = TRUE) +
-  #add the buffer overlay
+  # Add the buffer overlay
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
-  #add the street overlay
+  # Add the street overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
   scale_fill_gradientn(
-    colors = palette_urbn_cyan[c(2, 4, 6, 7)],  # Selecting a subset of colors
-    name = "Population by Census Tract",
+    colors = palette_urbn_cyan[c(2, 4, 6, 7)],
+    name = "Population",
     labels = scales::comma
   ) +
-  theme_urbn_map()+  
+  theme_urbn_map() +  
   theme(
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 16),
-    legend.key.height = unit(1.2, "cm"),
-    legend.key.width = unit(0.6, "cm")
-  )  
-
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_colorbar(
+      title.position = "top",
+      title.hjust = 0.5,
+      barwidth = unit(8, "cm"),
+      barheight = unit(0.6, "cm")
+    )
+  )
 
 ggsave(file.path(file_path, "Pico/Outputs/population_map_pico.png"), width = 14, height = 6, dpi = 300)
 
@@ -458,14 +458,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,3,5,6,8)], #can adjust the palette or color scheme as necessary
-    name = "Number of individuals with a disability",
+    name = str_wrap("Number of individuals with a disability", width = 30),
     breaks = c("Less than 200", "200-300", "300-400", "400-500", "500 or more")
   )+
-  theme_urbn_map()+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 print(plot) #view map
 ggsave(file.path(file_path, "Pico/Outputs/disability_map_pico.png"), width = 14, height = 6, dpi = 300)
@@ -501,15 +510,25 @@ income_map_pico <- ggplot(income_wide_pico) +
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
   scale_fill_gradientn(
     colors = palette_urbn_green[c(1,2,4,6,8)],
-    name = "Median Income by Census Tract",
+    name = "Median Income",
     labels = scales::label_dollar(scale_cut = scales::cut_short_scale())
   ) +
-  theme_urbn_map() +
+  theme_urbn_map() +  
   theme(
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 16),
-    legend.key.height = unit(1.2, "cm"),
-    legend.key.width = unit(0.6, "cm")
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_colorbar(
+      title.position = "top",
+      title.hjust = 0.5,
+      barwidth = unit(8, "cm"),
+      barheight = unit(0.6, "cm")
+    )
   )
 
 #save
@@ -573,12 +592,21 @@ poverty_map_pico <- ggplot(poverty_wide_pico) +
     name = "Share Below Poverty",
     drop = FALSE
   ) +
-  theme_urbn_map() +
+  theme_urbn_map() +  
   theme(
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 16),
-    legend.key.height = unit(1.2, "cm"),
-    legend.key.width = unit(0.6, "cm")
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1
+    )
   )
 
 ggsave(file.path(file_path, "Pico/Outputs/poverty_map_pico.png"), width = 14, height = 6, dpi = 300)
@@ -872,14 +900,25 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,3,6,8)], #can adjust the palette or color scheme as necessary
-    name = "Number of individuals with hearing difficulty",
+    name = str_wrap("Number of individuals with hearing difficulty", width = 30),
     breaks = c("Less than 50", "50-100", "100-150", "150 or more")
   )+
-  theme_urbn_map()+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
+print(plot)
+ggsave(file.path(file_path, "Pico/Outputs/hearing_diff_map_pico.png"), width = 14, height = 6, dpi = 300)
 
 
 #pull vision difficulty status data
@@ -935,14 +974,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,3,6,8)], #can adjust the palette or color scheme as necessary
-    name = "Number of individuals with a vision difficulty",
+    name = str_wrap("Number of individuals with a vision difficulty", width = 30),
     breaks = c("Less than 50", "50-100", "100-150", "150 or more")
   )+
-  theme_urbn_map() +
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 
 print(plot) #view map
@@ -973,7 +1021,8 @@ ambulatory_diff <-
 
 
 #add geometry for map
-st_geometry(ambulatory_diff) <- st_geometry(pico_tracts[match(ambulatory_diff$GEOID, pico_tracts$GEOID), ])
+st_geometry(ambulatory_diff) <- st_geometry(pico_tracts[match(ambulatory_diff$GEOID, pico_tracts$GEOID), ]
+                                            )
 class(ambulatory_diff)
 
 #creating custom bins for # of individuals w/ ambulatory diff by tract
@@ -992,14 +1041,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,3,5,7,8)], #can adjust the palette or color scheme as necessary
-    name = "Number of individuals with ambulatory difficulty",
+    name = str_wrap("Number of individuals with ambulatory difficulty", width = 30),
     breaks = c("Fewer than 50", "50-100", "100-200", "200-300", "300 or more")
   )+
-  theme_urbn_map()+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 
 print(plot) #view map
@@ -1544,16 +1602,26 @@ spanish_map_pico <- ggplot(spoken_language_wide_pico_sf) +
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
   scale_fill_gradientn(
     colors = palette_urbn_magenta[c(1, 3, 5, 7)], 
-    name = NULL,
+    name = "Share of Spanish Speakers",
     labels = scales::percent_format()
   ) +
-  theme_urbn_map()+  
+  theme_urbn_map() +  
   theme(
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 16),
-    legend.key.height = unit(1.2, "cm"),
-    legend.key.width = unit(0.6, "cm")
-  )  
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_colorbar(
+      title.position = "top",
+      title.hjust = 0.5,
+      barwidth = unit(8, "cm"),
+      barheight = unit(0.6, "cm")
+    )
+  )
 
 #save
 ggsave(file.path(file_path, "Pico/Outputs/spanish_map_pico.png"), width = 14, height = 6, dpi = 300)
@@ -1567,16 +1635,26 @@ api_map_pico <- ggplot(spoken_language_wide_pico_sf) +
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
   scale_fill_gradientn(
     colors = palette_urbn_magenta[c(2, 4, 6, 8)],
-    name = NULL,
+    name = str_wrap("Share of Asian or Pacific Island Language Speakers", width = 30),
     labels = scales::percent_format()
   ) +
-  theme_urbn_map()+  
+  theme_urbn_map() +  
   theme(
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 16),
-    legend.key.height = unit(1.2, "cm"),
-    legend.key.width = unit(0.6, "cm")
-  )  
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_colorbar(
+      title.position = "top",
+      title.hjust = 0.5,
+      barwidth = unit(8, "cm"),
+      barheight = unit(0.6, "cm")
+    )
+  )
 
 #save
 ggsave(file.path(file_path, "Pico/Outputs/api_map_pico.png"), width = 14, height = 6, dpi = 300)
