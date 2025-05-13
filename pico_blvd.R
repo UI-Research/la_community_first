@@ -1121,14 +1121,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,2,4,6,8)], #can adjust the palette or color scheme as necessary
-    name = "Share of households without internet access",
+    name = str_wrap("Share of households without internet access", width = 30),
     breaks = c("Less than 5%", "5-10%", "10-15%", "15-20%", "20% or more")
   )+
-  theme_urbn_map() +
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 
 print(plot) #view map
@@ -1160,7 +1169,7 @@ tech_access <-
 st_geometry(tech_access) <- st_geometry(pico_tracts[match(tech_access$GEOID, pico_tracts$GEOID), ])
 class(tech_access)
 
-#creating custom bins for a map of %pop w/ vision diff
+#creating custom bins for a map of %pop w/ no access
 map_tech_access <- tech_access%>% 
   mutate(bin_no_computer = cut(share_no_computer, breaks=c(0,0.01,0.05,0.1,1),
                                labels  = c("Less than 1%", "1-5%", "5-10%", "10% or higher"),
@@ -1176,15 +1185,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,3,6,8)],
-    name = "Share of households without access to a device",
+    name = str_wrap("Share of households without access to a device", width = 30),
     breaks = c("Less than 1%", "1-5%", "5-10%", "10% or higher")
   )+
-  theme_urbn_map() +
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
-
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 print(plot) #view map
 
@@ -1329,15 +1346,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_quintile[], #can adjust the palette or color scheme as necessary
-    name = "Share of occupied housing units that are rented",
+    name = str_wrap("Share of occupied housing units that are rented", width = 30),
     breaks = c("50-60%", "60-70%", "70-80%", "80-90%", "90-100%")
   )+
-  theme_urbn_map()+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
-
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 print(plot) #view map
 
@@ -1709,14 +1734,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_diverging[c(5,4,3,2,1)], #can adjust the palette or color scheme as necessary
-    name = "Median share of income spent on housing",
+    name = str_wrap("Median share of income spent on housing", width = 30),
     breaks = c("less than 30%", "30-35%", "35-40%", "40-45%", "45-50%")
   )+
-  theme_urbn_map()+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 
 print(plot) #view map
@@ -1740,14 +1774,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_red[c(1,2,4,6,8)], #can adjust the palette or color scheme as necessary
-    name = "Share of renters spending more than 30% of income on housing",
+    name = str_wrap("Share of renters spending more than 30% of income on housing", width = 30),
     breaks = c("less than 40%", "40-50%", "50-60%", "60-70%", "70-80%")
   )+
-  theme_urbn_map()+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 
 print(plot) #view map
@@ -1771,14 +1814,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_red[c(1,2,4,6,7,8)], #can adjust the palette or color scheme as necessary
-    name = "Share of renters spending more than 50% of income on housing",
+    name = str_wrap("Share of renters spending more than 50% of income on housing", width = 30),
     breaks = c("less than 25%", "25-30%", "30-35%", "35-40%", "40% or higher")
   )+
-  theme_urbn_map()+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 
 print(plot) #view map
@@ -2087,14 +2139,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,2,4,6,7,8)], #can adjust the palette or color scheme as necessary
-    name = "Share of households without car access",
+    name = str_wrap("Share of households without car access", width = 30),
     breaks = c("Less than 10%", "10-20%", "20-30%", "30-40%", "40-50%", "50% or more"),
   )+
-  theme_urbn_map()+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 
 print(plot) #view map
@@ -2340,14 +2401,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_cyan[c(1,2,3,6, 7,8)], #can adjust the palette or color scheme as necessary
-    name = "Share of individuals with 60+ minute commute",
+    name = str_wrap("Share of individuals with 60+ minute commute", width = 30),
     breaks = c("Less than 5%", "5-10%", "10-15%", "15-20%", "20-25%", "25% or more")
   )+
-  theme_urbn_map()+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 
 print(plot) #view map
@@ -2427,15 +2497,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_cyan[c(2,4,6,8)], #can adjust the palette or color scheme as necessary
-    name = "Share of income spent on H & T costs - area median income",
+    name = str_wrap("Share of income spent on H & T costs - area median income", width = 30),
     breaks = c("Less than 30%", "30-40%", "40-50%", "50% or more")
   )+
-  theme_urbn_map()+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
-
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 print(plot) #view map
 
@@ -2458,14 +2536,23 @@ plot <-ggplot()+
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.5) + #adding streets to map
   scale_fill_manual(
     values = palette_urbn_cyan[c(2,3,5,7,8)], #can adjust the palette or color scheme as necessary
-    name = "Share of income spent on H & T costs - 80% area median income",
+    name = str_wrap("Share of income spent on H & T costs - 80% area median income", width = 30),
     breaks = c("Less than 30%", "30-40%", "40-50%", "50-60%", "60% or more")
   )+
-  theme_urbn_map()+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1))
 
 ggsave(file.path(file_path, "Pico/Outputs/ht_80ami_map_pico.png"), width = 14, height = 6, dpi = 300)
 
@@ -2477,6 +2564,8 @@ hla_vote <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp"))
 pico_buffer_tracts_1 <- st_transform(pico_buffer_tracts, crs = 4326)
 hla_vote <- st_transform(hla_vote, crs = 4326)
 
+hla_vote <- st_make_valid(hla_vote)
+pico_buffer_tracts_1 <- st_make_valid(pico_buffer_tracts_1)
 
 #find intersection
 voting_intersection <- st_intersection(pico_buffer_tracts_1, hla_vote)
@@ -2493,12 +2582,24 @@ voting_map_pico <- ggplot() +
     name = "Share of Votes in Favor",
     labels = scales::percent_format()
   ) +
-  theme_urbn_map()+
-  labs(title = NULL)+
-  theme (legend.title = element_text(size = 16),
-         legend.text = element_text(size = 16), 
-         legend.key.height = unit(1.2, "cm"),
-         legend.key.width = unit(0.6, "cm"))
+  theme_urbn_map() +  
+  theme(
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    legend.key.height = unit(0.6, "cm"),
+    legend.key.width = unit(1.2, "cm")
+  ) +
+  guides(
+    fill = guide_colorbar(
+      title.position = "top",
+      title.hjust = 0.5,
+      barwidth = unit(8, "cm"),
+      barheight = unit(0.6, "cm")
+    )
+  )
+
 
 ggsave(file.path(file_path, "Pico/Outputs/voting_map_pico.png"), width = 14, height = 6, dpi = 300)
 
