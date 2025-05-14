@@ -2564,8 +2564,6 @@ hla_vote <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp"))
 pico_buffer_tracts_1 <- st_transform(pico_buffer_tracts, crs = 4326)
 hla_vote <- st_transform(hla_vote, crs = 4326)
 
-hla_vote <- st_make_valid(hla_vote)
-pico_buffer_tracts_1 <- st_make_valid(pico_buffer_tracts_1)
 
 #find intersection
 voting_intersection <- st_intersection(pico_buffer_tracts_1, hla_vote)
