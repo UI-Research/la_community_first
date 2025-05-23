@@ -1496,28 +1496,37 @@ ggsave(file.path(file_path, "Pico/Outputs/pop_by_language_skill_pct_pico.png"), 
 
 
 ##Other languages spoken in the area##
-#see language
+language_specific <-
+  get_acs(
+    geography = "tract",
+    table = "C16001",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = FALSE,
+  )
 
 #create bins for each language spoken
 language_bins_1 <- list(
-  total = "B16004_001",
-  only_english = c("B16004_003", "B16004_025", "B16004_047"),
-  spanish = c("B16004_004", "B16004_026", "B16004_048"),
-  other_indo_euro = c("B16004_009", "B16004_031", "B16004_053"),
-  asian_pac_island =c("B16004_014", "B16004_036", "B16004_058"),
-  other_language = c("B16004_19", "B16004_041", "B16004_063")
+  total = "C16001_001",
+  only_english = "C16001_002",
+  spanish = "C16001_003",
+  korean = "C16001_018",
+  chinese = "C16001_021",
+  other_language = c("C16001_006", "C16001_009", "C16001_012", "C16001_015","C16001_024","C16001_027", "C16001_030", "C16001_033", "C16001_036")
 )
 
 #summarise total by language, for each tract
 # Pivot  data wider
-spoken_language_wide_pico <- language %>%
+spoken_language_wide_pico <- language_specific %>%
   filter(variable %in% unlist(language_bins_1), GEOID %in% pico_tracts$GEOID) %>%
   mutate(language_spoken = case_when(
     variable %in% language_bins_1$total ~ "Total",
     variable %in% language_bins_1$only_english ~ "English Only",
     variable %in% language_bins_1$spanish ~ "Spanish",
-    variable %in% language_bins_1$other_indo_euro ~ "Other Indo-European Languages",
-    variable %in% language_bins_1$asian_pac_island ~ "Asian and Pacific Island Languages",
+    variable %in% language_bins_1$korean ~ "Korean",
+    variable %in% language_bins_1$chinese ~ "Chinese",
     variable %in% language_bins_1$other_language ~ "Other Languages",
     TRUE ~ NA_character_
   )) %>%
@@ -1526,13 +1535,13 @@ spoken_language_wide_pico <- language %>%
   summarise(population = sum(estimate, na.rm = TRUE), .groups = "drop") %>%
   # Pivot wider to get one column per language
   pivot_wider(names_from = language_spoken, values_from = population, values_fill = list(population = 0)) %>%
-  mutate(
-    share_english_only = `English Only` / Total,
-    share_spanish = Spanish / Total,
-    share_other_indo_euro = `Other Indo-European Languages` / Total,
-    share_asian_pac_island = `Asian and Pacific Island Languages` / Total,
-    share_other_language = `Other Languages` / Total
-  ) %>%
+  # mutate(
+  #   share_english_only = `English Only` / Total,
+  #   share_spanish = Spanish / Total,
+  #   share_korean = Korean/ Total,
+  #   share_chinese = Chinese/ Total,
+  #   share_other_language = `Other Languages` / Total
+  # ) %>%
   left_join(select(language, GEOID, NAME) %>% distinct(), by = "GEOID")
 
 #calculate totals for bar chart
@@ -1545,37 +1554,16 @@ language_spoken_totals <- spoken_language_wide_pico %>%
     values_to = "population"
   )
 
-#reorder so that the bars show up in the order we want
-language_spoken_totals$language_spoken <- factor(
-  language_spoken_totals$language_spoken,
-  levels = c("English Only", "Spanish", "Other Indo-European Languages", "Asian and Pacific Island Languages", "Other Languages")
-)
 
-#create a bar chart
-pop_by_language_spoken_pico <- ggplot(language_spoken_totals, aes(x = language_spoken, y = population, fill = language_spoken)) +
-  geom_col() +
-  geom_text(aes(label = scales::comma(population)), vjust = -0.5, size = 5) +
-  labs(
-    x = NULL,
-    y = "Population"
-  ) +
-  scale_y_continuous(labels = scales::comma) +
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 16)) + 
-  theme(legend.position = "none") +
-  theme(
-    axis.title.x = element_text(size = 16),
-    axis.title.y = element_text(size = 16),
-    axis.text.x = element_text(size = 16),
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank()
-  )
-
-#save
-ggsave(file.path(file_path, "Pico/Outputs/pop_by_language_spoken_pico.png"), width = 14, height = 6, dpi = 300)
-
-#replicate in case we want percentages
 # Calculate percentages for each language spoken category
 language_spoken_totals_pct <- spoken_language_wide_pico %>%
+  mutate(
+    share_english_only = `English Only` / Total,
+    share_spanish = Spanish / Total,
+    share_korean = Korean/ Total,
+    share_chinese = Chinese/ Total,
+    share_other_language = `Other Languages` / Total
+  ) %>%
   select(-GEOID, -NAME) %>%
   summarise(across(everything(), ~sum(.x, na.rm = TRUE))) %>%
   pivot_longer(
@@ -1583,14 +1571,22 @@ language_spoken_totals_pct <- spoken_language_wide_pico %>%
     names_to = "language_spoken",
     values_to = "population"
   ) %>%
+  filter(str_starts(language_spoken, "share")) %>%
   mutate(
-    percent = population / sum(population)
+    percent = population / sum(population),
+    language_spoken = recode(language_spoken,
+                             share_english_only = "English Only",
+                             share_spanish = "Spanish",
+                             share_korean = "Korean",
+                             share_chinese = "Chinese",
+                             share_other_language = "Other Languages"
+    )
   )
 
 # Reorder the factor levels
 language_spoken_totals_pct$language_spoken <- factor(
   language_spoken_totals_pct$language_spoken,
-  levels = c("English Only", "Spanish", "Other Indo-European Languages", "Asian and Pacific Island Languages", "Other Languages")
+  levels = c("English Only", "Spanish", "Korean", "Chinese","Other Languages")
 )
 
 # Plot as a percentage bar chart
@@ -1616,8 +1612,16 @@ ggsave(file.path(file_path, "Pico/Outputs/pop_by_language_spoken_pct_pico.png"),
 
 #create a map
 spoken_language_wide_pico_sf <- spoken_language_wide_pico %>%
+  mutate(
+    share_english_only = `English Only` / Total,
+    share_spanish = Spanish / Total,
+    share_korean = Korean / Total,
+    share_chinese = Chinese/ Total,
+    share_other_language = `Other Languages` / Total
+  ) %>%
   left_join(select(pico_tracts, GEOID, geometry), by = "GEOID") %>%
   st_as_sf()
+
 
 spanish_map_pico <- ggplot(spoken_language_wide_pico_sf) +
   geom_sf(aes(fill = share_spanish), show.legend = TRUE) +
@@ -1652,15 +1656,15 @@ spanish_map_pico <- ggplot(spoken_language_wide_pico_sf) +
 ggsave(file.path(file_path, "Pico/Outputs/spanish_map_pico.png"), width = 14, height = 6, dpi = 300)
 
 
-api_map_pico <- ggplot(spoken_language_wide_pico_sf) +
-  geom_sf(aes(fill = share_asian_pac_island), show.legend = TRUE) +
+korean_map_pico <- ggplot(spoken_language_wide_pico_sf) +
+  geom_sf(aes(fill = share_korean), show.legend = TRUE) +
   #add the buffer overlay
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
   #add the street overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
   scale_fill_gradientn(
     colors = palette_urbn_magenta[c(2, 4, 6, 8)],
-    name = str_wrap("Share of Asian or Pacific Island Language Speakers", width = 30),
+    name = str_wrap("Share of Korean Speakers", width = 30),
     labels = scales::percent_format()
   ) +
   theme_urbn_map() +  
@@ -1682,7 +1686,7 @@ api_map_pico <- ggplot(spoken_language_wide_pico_sf) +
   )
 
 #save
-ggsave(file.path(file_path, "Pico/Outputs/api_map_pico.png"), width = 14, height = 6, dpi = 300)
+ggsave(file.path(file_path, "Pico/Outputs/korean_map_pico.png"), width = 14, height = 6, dpi = 300)
 
 ####----Housing Cost Burden----####
 #pull cost burden data

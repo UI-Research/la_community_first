@@ -85,7 +85,7 @@ pop_wide_hoover <- sex_by_age %>%
 pop_wide_hoover <- left_join(hoover_tracts, st_drop_geometry(pop_wide_hoover), by = "GEOID")
 
 #for data - get the total population
-totalpop <- sum(pop_wide_hoover$population)
+totalpop_hoover <- sum(pop_wide_hoover$population)
 
 population_histogram_hoover <- ggplot(pop_wide_hoover, aes(x = population)) +
   geom_histogram(binwidth = 500) +
@@ -338,7 +338,7 @@ country_of_origin_totals_hoover <- country_origin_filtered_hoover%>%
 foreign_value_hoover <- country_origin_filtered_hoover %>%
   filter(variable == "B05006_001") %>%
   summarise(total_estimate = sum(estimate, na.rm = TRUE)) %>%
-  mutate(result = total_estimate / totalpop) %>%
+  mutate(result = total_estimate / totalpop_hoover) %>%
   pull(result)
 
 
@@ -1444,28 +1444,33 @@ ggsave(file.path(file_path, "Hoover/Outputs/pop_by_language_skill_pct_hoover.png
 
 
 ##Other languages spoken in the area##
-#see language
+language_specific <-
+  get_acs(
+    geography = "tract",
+    table = "C16001",
+    state = state_fips,
+    county = county_fips,
+    year = 2023,
+    survey = "acs5",
+    geometry = FALSE,
+  )
 
 #create bins for each language spoken
 language_bins_1 <- list(
-  total = "B16004_001",
-  only_english = c("B16004_003", "B16004_025", "B16004_047"),
-  spanish = c("B16004_004", "B16004_026", "B16004_048"),
-  other_indo_euro = c("B16004_009", "B16004_031", "B16004_053"),
-  asian_pac_island =c("B16004_014", "B16004_036", "B16004_058"),
-  other_language = c("B16004_19", "B16004_041", "B16004_063")
+  total = "C16001_001",
+  only_english = "C16001_002",
+  spanish = "C16001_003",
+  other_language = c("C16001_006", "C16001_009", "C16001_012", "C16001_015", "C16001_018", "C16001_021", "C16001_024", "C16001_027","C16001_030", "C16001_033", "C16001_036")
 )
 
 #summarise total by language, for each tract
 # Pivot  data wider
-spoken_language_wide_hoover <- language %>%
+spoken_language_wide_hoover <- language_specific %>%
   filter(variable %in% unlist(language_bins_1), GEOID %in% hoover_tracts$GEOID) %>%
   mutate(language_spoken = case_when(
     variable %in% language_bins_1$total ~ "Total",
     variable %in% language_bins_1$only_english ~ "English Only",
     variable %in% language_bins_1$spanish ~ "Spanish",
-    variable %in% language_bins_1$other_indo_euro ~ "Other Indo-European Languages",
-    variable %in% language_bins_1$asian_pac_island ~ "Asian and Pacific Island Languages",
     variable %in% language_bins_1$other_language ~ "Other Languages",
     TRUE ~ NA_character_
   )) %>%
@@ -1475,11 +1480,11 @@ spoken_language_wide_hoover <- language %>%
   # Pivot wider to get one column per language
   pivot_wider(names_from = language_spoken, values_from = population, values_fill = list(population = 0)) %>%
   # mutate(
-  #   share_english_only = `English Only` / totalpop,
-  #   share_spanish = Spanish / totalpop,
-  #   share_other_indo_euro = `Other Indo-European Languages` / totalpop,
-  #   share_asian_pac_island = `Asian and Pacific Island Languages` / totalpop,
-  #   share_other_language = `Other Languages` / totalpop
+  #   share_english_only = `English Only` / Total,
+  #   share_spanish = Spanish / Total,
+  #   share_korean = Korean/ Total,
+  #   share_chinese = Chinese/ Total,
+  #   share_other_language = `Other Languages` / Total
   # ) %>%
   left_join(select(language, GEOID, NAME) %>% distinct(), by = "GEOID")
 
@@ -1493,47 +1498,45 @@ language_spoken_totals <- spoken_language_wide_hoover %>%
     values_to = "population"
   )
 
-# Factor for ordering bars
-language_spoken_totals$language_spoken <- factor(
-  language_spoken_totals$language_spoken,
-  levels = c("English Only", "Spanish", "Other Indo-European Languages", "Asian and Pacific Island Languages", "Other Languages")
-)
+# # Factor for ordering bars
+# language_spoken_totals$language_spoken <- factor(
+#   language_spoken_totals$language_spoken,
+#   levels = c("English Only", "Spanish", "Other Languages")
+# )
 
 # Bar chart
-pop_by_language_spoken_hoover <- ggplot(language_spoken_totals, aes(x = language_spoken, y = population, fill = language_spoken)) +
-  geom_col() +
-  geom_text(
-    aes(label = scales::comma(population)),
-    vjust = -0.5, size = 5
-  ) +
-  labs(
-    x = NULL,
-    y = "Population"
-  ) +
-  scale_y_continuous(labels = scales::comma, expand = expansion(mult = c(0, 0.1))) +
-  scale_x_discrete(labels = function(x) str_wrap(x, width = 16)) + 
-  theme(
-    legend.position = "none",
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 16),
-    axis.text.x = element_text(size = 14),
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank(),
-    panel.grid.major.x = element_blank()
-  )
-
-#save
-ggsave(file.path(file_path, "hoover/Outputs/pop_by_language_spoken_hoover.png"), width = 14, height = 6, dpi = 300)
+# pop_by_language_spoken_hoover <- ggplot(language_spoken_totals, aes(x = language_spoken, y = population, fill = language_spoken)) +
+#   geom_col() +
+#   geom_text(
+#     aes(label = scales::comma(population)),
+#     vjust = -0.5, size = 5
+#   ) +
+#   labs(
+#     x = NULL,
+#     y = "Population"
+#   ) +
+#   scale_y_continuous(labels = scales::comma, expand = expansion(mult = c(0, 0.1))) +
+#   scale_x_discrete(labels = function(x) str_wrap(x, width = 16)) + 
+#   theme(
+#     legend.position = "none",
+#     axis.title.x = element_blank(),
+#     axis.title.y = element_text(size = 16),
+#     axis.text.x = element_text(size = 14),
+#     axis.text.y = element_blank(),
+#     axis.ticks.y = element_blank(),
+#     panel.grid.major.x = element_blank()
+#   )
+# 
+# #save
+# ggsave(file.path(file_path, "hoover/Outputs/pop_by_language_spoken_hoover.png"), width = 14, height = 6, dpi = 300)
 
 #replicate in case we want percentages
 # Calculate percentages for each language spoken category
 language_spoken_totals_pct <- spoken_language_wide_hoover %>%
   mutate(
-    share_english_only = `English Only` / totalpop,
-    share_spanish = Spanish / totalpop,
-    share_other_indo_euro = `Other Indo-European Languages` / totalpop,
-    share_asian_pac_island = `Asian and Pacific Island Languages` / totalpop,
-    share_other_language = `Other Languages` / totalpop
+    share_english_only = `English Only` / totalpop_hoover,
+    share_spanish = Spanish / totalpop_hoover,
+    share_other_language = `Other Languages` / totalpop_hoover
   ) %>%
   select(-GEOID, -NAME) %>%
   summarise(across(everything(), ~sum(.x, na.rm = TRUE))) %>%
@@ -1548,8 +1551,6 @@ language_spoken_totals_pct <- spoken_language_wide_hoover %>%
     language_spoken = recode(language_spoken,
                              share_english_only = "English Only",
                              share_spanish = "Spanish",
-                             share_other_indo_euro = "Other Indo-European Languages",
-                             share_asian_pac_island = "Asian and Pacific Island Languages",
                              share_other_language = "Other Languages"
     )
   )
@@ -1557,7 +1558,7 @@ language_spoken_totals_pct <- spoken_language_wide_hoover %>%
 # Reorder the factor levels
 language_spoken_totals_pct$language_spoken <- factor(
   language_spoken_totals_pct$language_spoken,
-  levels = c("English Only", "Spanish", "Other Indo-European Languages", "Asian and Pacific Island Languages", "Other Languages")
+  levels = c("English Only", "Spanish", "Other Languages")
 )
 
 # Plot as a percentage bar chart
@@ -1625,37 +1626,38 @@ spanish_map_hoover <- ggplot(spoken_language_wide_hoover_sf) +
 #save
 ggsave(file.path(file_path, "Hoover/Outputs/spanish_map_hoover.png"), width = 14, height = 6, dpi = 300)
 
+#pretty much all spanish so not worth producing this map
 
-api_map_hoover <- ggplot(spoken_language_wide_hoover_sf) +
-  geom_sf(aes(fill = share_asian_pac_island), show.legend = TRUE) +
-  #add the buffer overlay
-  geom_sf(data = hoover_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
-  #add the street overlay
-  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
-  scale_fill_gradientn(
-    colors = palette_urbn_magenta[c(2, 4, 6, 8)],
-    name = str_wrap("Share of Asian or Pacific Island Language Speakers", width = 30),
-    labels = scales::percent_format()
-  ) +
-  theme_urbn_map() +  
-  theme(
-    legend.position = "right",
-    legend.direction = "vertical",
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 12),
-    legend.key.height = unit(0.6, "cm"),
-    legend.key.width = unit(1.2, "cm")
-  ) +
-  guides(
-    fill = guide_colorbar(
-      title.position = "top",
-      title.hjust = 0.5,
-      barwidth = unit(0.6, "cm"),   # narrow width
-      barheight = unit(6, "cm")     # tall vertical bar
-    )
-  )
-#save
-ggsave(file.path(file_path, "Hoover/Outputs/api_map_hoover.png"), width = 14, height = 6, dpi = 300)
+# api_map_hoover <- ggplot(spoken_language_wide_hoover_sf) +
+#   geom_sf(aes(fill = share_asian_pac_island), show.legend = TRUE) +
+#   #add the buffer overlay
+#   geom_sf(data = hoover_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
+#   #add the street overlay
+#   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
+#   scale_fill_gradientn(
+#     colors = palette_urbn_magenta[c(2, 4, 6, 8)],
+#     name = str_wrap("Share of Asian or Pacific Island Language Speakers", width = 30),
+#     labels = scales::percent_format()
+#   ) +
+#   theme_urbn_map() +  
+#   theme(
+#     legend.position = "right",
+#     legend.direction = "vertical",
+#     legend.title = element_text(size = 12),
+#     legend.text = element_text(size = 12),
+#     legend.key.height = unit(0.6, "cm"),
+#     legend.key.width = unit(1.2, "cm")
+#   ) +
+#   guides(
+#     fill = guide_colorbar(
+#       title.position = "top",
+#       title.hjust = 0.5,
+#       barwidth = unit(0.6, "cm"),   # narrow width
+#       barheight = unit(6, "cm")     # tall vertical bar
+#     )
+#   )
+# #save
+# ggsave(file.path(file_path, "Hoover/Outputs/api_map_hoover.png"), width = 14, height = 6, dpi = 300)
 
 ####----Housing Cost Burden----####
 #pull cost burden data
