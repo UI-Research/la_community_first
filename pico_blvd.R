@@ -175,7 +175,7 @@ unique(pop_wide_pico$population)
 
 
 pico_population_map_1 <- tm_shape(pop_wide_pico) +
-  tm_basemap("CartoDB.PositronNoLabels") +
+  tm_basemap("Esri.WorldStreetMap") +  # <-- this includes streets + place names
   tm_polygons(
     col = "population",
     palette = toupper(urbnthemes::palette_urbn_cyan),
@@ -188,16 +188,9 @@ pico_population_map_1 <- tm_shape(pop_wide_pico) +
     na.show = FALSE
   ) +
   tm_shape(pico_buffer_outline) +
-  tm_borders(
-    col = "black",
-    lwd = 2
-  ) +
+  tm_borders(col = "black", lwd = 2) +
   tm_shape(pico_blvd) +
-  tm_lines(
-    col = "black",
-    lwd = 2.5,
-    alpha = 0.8
-  ) +
+  tm_lines(col = "black", lwd = 2.5, alpha = 0.8) +
   tm_scale_bar(position = c("right", "bottom")) +
   tm_compass(type = "8star", position = c("right", "top")) +
   tm_layout(
@@ -206,8 +199,7 @@ pico_population_map_1 <- tm_shape(pop_wide_pico) +
     legend.bg.color = NA,
     legend.bg.alpha = 0,
     legend.frame = FALSE
-  ) +
-  tm_tiles("CartoDB.PositronOnlyLabels", group = "Place Names")
+  )
 
 
 # Save as SVG
