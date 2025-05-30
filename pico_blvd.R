@@ -6,13 +6,15 @@
 ## then load other packages thereafter because some will intentionally mask tidyverse functions
 ## note that I've removed things like tidyr, ggplot, etc.--these are contained within the tidyverse
 ## I'd also vote against commenting packages unless they're lesser-used ones, just for readability
-
+library(tmap)
+library(cols4all)
 library(tidyverse)
 library(tidycensus)
 library(readxl)
 library(openxlsx)
 library(geofacet)
 library(sf)
+library(scales)
 library(osmdata)
 library(urbnthemes)
 options(scipen=999)
@@ -38,6 +40,13 @@ la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.s
 
 #pico tracts
 pico_buffer_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"))
+
+pico_buffer_outline <- st_union(pico_buffer_tracts) |> st_as_sf()
+
+#pico blvd
+pico_blvd <- st_read(file.path(file_path, "Pico/Maps/pico_blvd.shp"))
+
+
 ##WCG: always have spaces on either side of pipe operators
 pico_tracts <- la_shp %>%
   filter(GEOID %in% pico_buffer_tracts$GEOID)
@@ -128,6 +137,7 @@ population_map_pico <- ggplot(pop_wide_pico) +
   geom_sf(aes(fill = population), show.legend = TRUE) +
   # Add the buffer overlay
   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
+  geom_sf(data = pico_blvd, color = "orange", alpha = 0.2, lwd = 1) +
   # Add the street overlay
   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
   scale_fill_gradientn(
@@ -152,6 +162,63 @@ population_map_pico <- ggplot(pop_wide_pico) +
       barheight = unit(0.6, "cm")
     )
   )
+
+class(population_map_pico)
+
+
+tmap_mode("plot")
+
+# Create the map object
+
+pop_wide_pico$population <- as.numeric(pop_wide_pico$population)
+unique(pop_wide_pico$population)
+
+
+pico_population_map_1 <- tm_shape(pop_wide_pico) +
+  tm_basemap("CartoDB.PositronNoLabels") +
+  tm_polygons(
+    col = "population",
+    palette = toupper(urbnthemes::palette_urbn_cyan),
+    style = "cont",
+    border.col = "white",
+    border.lwd = 0.3,
+    title = "",
+    popup.format = list(fun = function(x) scales::comma(round(x))),
+    legend.format = list(fun = function(x) scales::comma_format()(x)),
+    na.show = FALSE
+  ) +
+  tm_shape(pico_buffer_outline) +
+  tm_borders(
+    col = "black",
+    lwd = 2
+  ) +
+  tm_shape(pico_blvd) +
+  tm_lines(
+    col = "black",
+    lwd = 2.5,
+    alpha = 0.8
+  ) +
+  tm_scale_bar(position = c("right", "bottom")) +
+  tm_compass(type = "8star", position = c("right", "top")) +
+  tm_layout(
+    frame = FALSE,
+    legend.position = c("left", "bottom"),
+    legend.bg.color = NA,
+    legend.bg.alpha = 0,
+    legend.frame = FALSE
+  ) +
+  tm_tiles("CartoDB.PositronOnlyLabels", group = "Place Names")
+
+
+# Save as SVG
+tmap_save(
+  tm = pico_population_map_1,
+  filename = file.path(file_path, "Pico/Outputs/pico_population_map_1.svg"),
+  width = 8,
+  height = 6,
+  units = "in"
+)
+
 
 ggsave(file.path(file_path, "Pico/Outputs/population_map_pico.png"), width = 14, height = 6, dpi = 300)
 
@@ -256,7 +323,7 @@ ethnicity_wide_pico <- ethnicity %>%
                          "B03002_005",  # American Indian
                          "B03002_006",  # Asian
                          "B03002_007",  # Hawaiian and Pacific Islander
-                         "B03002_010",  # Other
+                         "B03002_010",  # Two or More
                          "B03002_012"   # Hispanic
          )) %>%
   select(GEOID, variable, estimate) %>%
@@ -272,7 +339,7 @@ ethnicity_wide_pico <- ethnicity %>%
     native_am = eth_B03002_005,
     asian = eth_B03002_006,
     hawaiian_pac = eth_B03002_007,
-    other = eth_B03002_010,
+    two_or_more = eth_B03002_010,
     hispanic = eth_B03002_012
   ) %>%
   mutate(
@@ -281,7 +348,7 @@ ethnicity_wide_pico <- ethnicity %>%
     pct_black = black / total * 100,
     pct_native_hawaiian = native_hawaiian / total * 100,
     pct_asian = asian / total * 100,
-    pct_other = other / total * 100,
+    pct_two_or_more = two_or_more / total * 100,
     pct_hispanic = hispanic / total * 100
   ) %>%
   bind_rows(
@@ -294,13 +361,13 @@ ethnicity_wide_pico <- ethnicity %>%
               hawaiian_pac = sum(hawaiian_pac, na.rm = TRUE),
               native_hawaiian = native_am + hawaiian_pac,
               asian = sum(asian, na.rm = TRUE),
-              other = sum(other, na.rm = TRUE),
+              two_or_more = sum(two_or_more, na.rm = TRUE),
               hispanic = sum(hispanic, na.rm = TRUE),
               pct_white = white / total * 100,
               pct_black = black / total * 100,
               pct_native_hawaiian = native_hawaiian / total * 100,
               pct_asian = asian / total * 100,
-              pct_other = other / total * 100,
+              pct_two_or_more = two_or_more / total * 100,
               pct_hispanic = hispanic / total * 100)
   )
 
@@ -319,7 +386,7 @@ ethnicity_long <- ethnicity_wide_pico %>%
                    pct_black = "Black",
                    pct_native_hawaiian = "Native American, Alaska Native, Native Hawaiiwan, and other Pacific Islander",
                    pct_asian = "Asian",
-                   pct_other = "Other",
+                   pct_two_or_more = "Two or More Races Including Some Other Race",
                    pct_hispanic = "Hispanic")
   )
 
@@ -380,9 +447,7 @@ foreign_value <- country_origin_filtered_pico %>%
 
 #after reviewing the table above, edit to manually pull out the highest (in this case I chose the top countries with more than 1,000). This is done manually because some of the variables include 'Total', 'Asia', 'Central America', etc.
 country_origin_top_10_pico <- country_origin_filtered_pico %>%
-  filter(
-    GEOID %in% pico_tracts$GEOID
-  ) %>%
+  filter(GEOID %in% pico_tracts$GEOID) %>%
   mutate(country = case_when(
     variable == "B05006_158" ~ "Guatemala",
     variable == "B05006_157" ~ "El Salvador",
@@ -390,10 +455,11 @@ country_origin_top_10_pico <- country_origin_filtered_pico %>%
     variable == "B05006_054" ~ "Korea",
     variable == "B05006_049" ~ "China",
     variable == "B05006_074" ~ "Phillipnes",
-    variable == "B05006_159" ~ "Honduras",
+    variable == "B05006_159" ~ "Honduras"
   )) %>%
   group_by(country) %>%
-  summarise(total = sum(estimate, na.rm = TRUE), .groups = "drop")
+  summarise(total = sum(estimate, na.rm = TRUE), .groups = "drop") %>%
+  mutate(share_pop = total / totalpop)
 
 write.csv(country_origin_filtered_pico, file.path(file_path, "Fileshare", "country_origin_filtered_pico.csv"), row.names = FALSE)
 
