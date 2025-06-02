@@ -50,6 +50,7 @@ pico_blvd <- st_read(file.path(file_path, "Pico/Maps/pico_blvd.shp"))
 ##WCG: always have spaces on either side of pipe operators
 pico_tracts <- la_shp %>%
   filter(GEOID %in% pico_buffer_tracts$GEOID)
+
 pico_tracts %>% pull(GEOID)
 #streets
 #create specific set of streets we want to see
@@ -69,6 +70,18 @@ major_streets <- streets_lines %>%
 
 #create a version that clips the streets to the focus area
 major_streets_clipped <- st_intersection(major_streets, st_union(st_geometry(pico_tracts)))
+
+#streets for Pico maps
+pico_streets <- major_streets_clipped %>%
+  filter(name %in% c("West Pico Boulevard", "South Hoover Street", "Crenshaw Boulevard", "West Washington Boulevard", "West Olympic Boulevard")) %>%
+  st_centroid()
+
+
+pico_streets_single <- pico_streets %>%
+  filter(!is.na(name) & name != "") %>%
+  group_by(name) %>%
+  summarise(geometry = st_union(geometry), .groups = "drop") %>%
+  st_centroid()
 
 #load in census api key
 #note - you will need to get a census api key to access this#
@@ -103,6 +116,8 @@ pop_wide_pico <- sex_by_age %>%
 
 #add census tracts
 pop_wide_pico <- left_join(pico_tracts, st_drop_geometry(pop_wide_pico), by = "GEOID")
+sf::st_write(pop_wide_pico, file.path(file_path, "Fileshare", "pop_wide_pico.geojson"), driver = "GeoJSON", delete_dsn = TRUE)
+
 
 #for data - get the total population
 totalpop <- sum(pop_wide_pico$population)
@@ -166,19 +181,16 @@ population_map_pico <- ggplot(pop_wide_pico) +
 class(population_map_pico)
 
 
-tmap_mode("plot")
+
+tmap_mode("view")
 
 # Create the map object
 
-pop_wide_pico$population <- as.numeric(pop_wide_pico$population)
-unique(pop_wide_pico$population)
-
-
 pico_population_map_1 <- tm_shape(pop_wide_pico) +
-  tm_basemap("Esri.WorldStreetMap") +  # <-- this includes streets + place names
+  tm_basemap("OpenStreetMap") +
   tm_polygons(
     col = "population",
-    palette = toupper(urbnthemes::palette_urbn_cyan),
+    palette = c("#87A0B4", "#1A4378"),
     style = "cont",
     border.col = "white",
     border.lwd = 0.3,
@@ -191,6 +203,53 @@ pico_population_map_1 <- tm_shape(pop_wide_pico) +
   tm_borders(col = "black", lwd = 2) +
   tm_shape(pico_blvd) +
   tm_lines(col = "black", lwd = 2.5, alpha = 0.8) +
+  tm_tiles("CartoDB.PositronOnlyLabels", group = "Streets & Labels") +
+  tm_shape(pico_streets_single) +
+  tm_text("name", size = 0.6, col = "black", shadow = TRUE, auto.placement = TRUE) +
+  tm_scale_bar(position = c("right", "bottom")) +
+  tm_compass(type = "8star", position = c("right", "top")) +
+  tm_layout(
+    frame = FALSE,
+    legend.position = c("left", "bottom"),
+    legend.bg.color = NA,
+    legend.bg.alpha = 0,
+    legend.frame = FALSE
+  )+
+  tm_view(set.zoom = 10)
+
+tmap_mode("plot")
+
+
+
+# Save as SVG
+tmap_save(
+  tm = pico_population_map_1,
+  filename = file.path(file_path, "Pico/Outputs/pico_population_map_1.svg"),
+  width = 8,
+  height = 6,
+  units = "in"
+)
+
+pico_population_map_2 <- tm_shape(pop_wide_pico) +
+  tm_basemap("CartoDB.PositronNoLabels") +
+  tm_polygons(
+    col = "population",
+    palette = c("#87A0B4", "#1A4378"),
+    style = "cont",
+    border.col = "white",
+    border.lwd = 0.3,
+    title = "",
+    popup.format = list(fun = function(x) scales::comma(round(x))),
+    legend.format = list(fun = function(x) scales::comma_format()(x)),
+    na.show = FALSE
+  ) +
+  tm_shape(pico_buffer_outline) +
+  tm_borders(col = "black", lwd = 2) +
+  tm_shape(pico_blvd) +
+  tm_lines(col = "black", lwd = 2.5, alpha = 0.8) +
+  tm_tiles("CartoDB.PositronOnlyLabels", group = "Streets & Labels") +
+  tm_shape(pico_streets_single) +
+  tm_text("name", size = 0.6, col = "black", shadow = TRUE, auto.placement = TRUE) +
   tm_scale_bar(position = c("right", "bottom")) +
   tm_compass(type = "8star", position = c("right", "top")) +
   tm_layout(
@@ -201,11 +260,49 @@ pico_population_map_1 <- tm_shape(pop_wide_pico) +
     legend.frame = FALSE
   )
 
+# Save as SVG
+tmap_save(
+  tm = pico_population_map_2,
+  filename = file.path(file_path, "Pico/Outputs/pico_population_map_2.svg"),
+  width = 8,
+  height = 6,
+  units = "in"
+)
+
+pico_population_map_3 <- tm_shape(pop_wide_pico) +
+  tm_basemap("Esri.WorldStreetMap") +
+  tm_polygons(
+    col = "population",
+    palette = c("#87A0B4", "#1A4378"),
+    style = "cont",
+    border.col = "white",
+    border.lwd = 0.3,
+    title = "",
+    popup.format = list(fun = function(x) scales::comma(round(x))),
+    legend.format = list(fun = function(x) scales::comma_format()(x)),
+    na.show = FALSE
+  ) +
+  tm_shape(pico_buffer_outline) +
+  tm_borders(col = "black", lwd = 2) +
+  tm_shape(pico_blvd) +
+  tm_lines(col = "black", lwd = 2.5, alpha = 0.8) +
+  tm_tiles("CartoDB.PositronOnlyLabels", group = "Streets & Labels") +
+  tm_shape(pico_streets_single) +
+  tm_text("name", size = 0.6, col = "black", shadow = TRUE, auto.placement = TRUE) +
+  tm_scale_bar(position = c("right", "bottom")) +
+  tm_compass(type = "8star", position = c("right", "top")) +
+  tm_layout(
+    frame = FALSE,
+    legend.position = c("left", "bottom"),
+    legend.bg.color = NA,
+    legend.bg.alpha = 0,
+    legend.frame = FALSE
+  )
 
 # Save as SVG
 tmap_save(
-  tm = pico_population_map_1,
-  filename = file.path(file_path, "Pico/Outputs/pico_population_map_1.svg"),
+  tm = pico_population_map_3,
+  filename = file.path(file_path, "Pico/Outputs/pico_population_map_3.svg"),
   width = 8,
   height = 6,
   units = "in"
