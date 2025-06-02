@@ -11,6 +11,7 @@ library(geofacet)
 library(sf)
 library(scales)
 library(osmdata)
+library(writexl)
 
 
 #setting wd
@@ -94,7 +95,8 @@ pico_master_data <- la_acs_sf %>%
 class(pico_master_data) #checking to make sure it is a sf
 
 #save pico master data file as csv
-write.csv(pico_master_data, file = file.path(file_path, "/Pico/pico_master_data.csv"), row.names = FALSE)
+write.csv(pico_master_data, file = file.path(file_path, "/Pico/pico_master_data.csv"))
+
 
 
 
@@ -111,7 +113,8 @@ la_city_master_data <- la_acs_sf %>%
   st_as_sf()
 
 #save la city master data file as csv
-write.csv(la_city_master_data, file = file.path(file_path, "/Data/la_city_master_data.csv"), row.names = FALSE)
+write.csv(la_city_master_data, file = file.path(file_path, "/Data/la_city_master_data.csv"))
+
 
 
 
