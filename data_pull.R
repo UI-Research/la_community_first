@@ -1,5 +1,5 @@
 ### Data gathering file for the Pico Boulevard SCA ###
-
+get_pico_master_data <- function(file_path) {
 #libraries
 library(tidycensus)
 library(tmap)
@@ -94,8 +94,11 @@ pico_master_data <- la_acs_sf %>%
 
 class(pico_master_data) #checking to make sure it is a sf
 
+return(pico_master_data)
+}
+
 #save pico master data file as csv
-write.csv(pico_master_data, file = file.path(file_path, "/Pico/pico_master_data.csv"))
+#write.csv(pico_master_data, file = file.path(file_path, "/Pico/pico_master_data.csv"))
 
 
 
