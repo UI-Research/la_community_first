@@ -28,7 +28,7 @@ la_city_master_data <- clean_and_prepare_data(file_path)
 ###load list of 2023 acs variables
 v23 <- load_variables(2023, "acs5", cache = TRUE)
 
-#### age distribution ####
+######################################################## age distribution #######################################################################
 
 #define age bins
 age_bins <- list(
@@ -83,6 +83,62 @@ age_la <- la_city_master_data %>%
     share_age_60_up = age_60_up / total_population
   )
 
+## making the bar chart
+
+#combine and reshape both dataframes
+
+# Add area labels
+pico_long <- age_pico %>%
+  select(starts_with("share_")) %>%
+  mutate(area = "Pico") %>%
+  pivot_longer(cols = starts_with("share_"), 
+               names_to = "age_group", values_to = "share")
+
+city_long <- age_la %>%
+  select(starts_with("share_")) %>%
+  mutate(area = "LA City") %>%
+  pivot_longer(cols = starts_with("share_"), 
+               names_to = "age_group", values_to = "share")
+
+# Combine
+combined <- bind_rows(pico_long, city_long)
+
+#custom labels for age groups and city
+combined <- combined %>%
+  mutate(
+    age_group = recode(age_group,
+                       "share_age_0_17"  = "0–17",
+                       "share_age_18_29" = "18–29",
+                       "share_age_30_44" = "30–44",
+                       "share_age_45_59" = "45–59",
+                       "share_age_60_up" = "60+"
+    ),
+    area = factor(area, levels = c("Pico", "LA City")),
+    label = paste0(round(share * 100), "%")
+  )
+
+# custom colors per LA DOT style guide
+colors <- c("Pico" = rgb(135, 160, 180, maxColorValue = 255), 
+            "LA City" = rgb(26, 67, 120, maxColorValue = 255))
+
+#Plot
+ggplot(combined, aes(x = age_group, y = share, fill = area)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  geom_text(aes(label = label),
+            position = position_dodge(width = 0.8), 
+            vjust = -0.5, size = 4) +
+  scale_fill_manual(values = colors) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    x = "Age Group",
+    y = "Share of Total Population",
+    fill = NULL,
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "top",
+    panel.grid.major.x = element_blank()
+  )
 
 
 
