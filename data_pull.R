@@ -1,6 +1,6 @@
 ### Data gathering file for the Pico Boulevard SCA ###
 
-clean_and_prepare_data <- function(file_path, corridor_name = "Pico") {
+clean_and_prepare_data <- function(file_path) {
   # Load necessary libraries
   library(tidycensus)
   library(tmap)
