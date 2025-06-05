@@ -83,6 +83,19 @@ pico_streets_single <- pico_streets %>%
   summarise(geometry = st_union(geometry), .groups = "drop") %>%
   st_centroid()
 
+
+#key locations
+pico_locations_df <- data.frame(
+  name = c("HAROLD A HENRY PARK", "MACARTHUR PARK", "LAFAYETTE RECREATION CENTER", "LOS ANGELES ELEMENTARY SCHOOL", "LOS ANGELES HIGH SCHOOL", "NORMANDIE RECREATION CENTER"),
+  lon = c(-118.326204, -118.277825, -118.283041, -118.332695, -118.332512, -118.299765),  # longitude from Google Maps
+  lat = c(34.05771, 34.059539, 34.061962, 34.047654, 34.055755, 34.044543)         # latitude from Google Maps
+)
+
+pico_locations_sf <- st_as_sf(pico_locations_df, coords = c("lon", "lat"), crs = 4326)
+
+# Step 3: Write to a shapefile
+st_write(pico_locations_sf, "pico_locations.shp")
+
 #load in census api key
 #note - you will need to get a census api key to access this#
 ##WCG: tidycensus will pull this behind the scenes
@@ -147,38 +160,38 @@ ggsave(file.path(file_path, "Pico/Outputs/population_histogram_pico.png"), width
 ## also--the text sizes shouldn't (generally) need adjustment. these look a little large IMO. 
 ## regardless, you can use `str_wrap()` to automatically insert newlines so that, e.g., your legend
 ## title is only 10 characters wide (or whatver character count you want)
-#create map of population
-population_map_pico <- ggplot(pop_wide_pico) +
-  geom_sf(aes(fill = population), show.legend = TRUE) +
-  # Add the buffer overlay
-  geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
-  geom_sf(data = pico_blvd, color = "orange", alpha = 0.2, lwd = 1) +
-  # Add the street overlay
-  geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
-  scale_fill_gradientn(
-    colors = palette_urbn_cyan[c(2, 4, 6, 7)],
-    name = "Population",
-    labels = scales::comma
-  ) +
-  theme_urbn_map() +  
-  theme(
-    legend.position = "bottom",
-    legend.direction = "horizontal",
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 12),
-    legend.key.height = unit(0.6, "cm"),
-    legend.key.width = unit(1.2, "cm")
-  ) +
-  guides(
-    fill = guide_colorbar(
-      title.position = "top",
-      title.hjust = 0.5,
-      barwidth = unit(8, "cm"),
-      barheight = unit(0.6, "cm")
-    )
-  )
-
-class(population_map_pico)
+# #create map of population
+# population_map_pico <- ggplot(pop_wide_pico) +
+#   geom_sf(aes(fill = population), show.legend = TRUE) +
+#   # Add the buffer overlay
+#   geom_sf(data = pico_buffer_tracts, color = "yellow", alpha = 0.2, lwd = 1) +
+#   geom_sf(data = pico_blvd, color = "orange", alpha = 0.2, lwd = 1) +
+#   # Add the street overlay
+#   geom_sf(data = major_streets_clipped, color = "gray20", size = 0.3) +
+#   scale_fill_gradientn(
+#     colors = palette_urbn_cyan[c(2, 4, 6, 7)],
+#     name = "Population",
+#     labels = scales::comma
+#   ) +
+#   theme_urbn_map() +  
+#   theme(
+#     legend.position = "bottom",
+#     legend.direction = "horizontal",
+#     legend.title = element_text(size = 12),
+#     legend.text = element_text(size = 12),
+#     legend.key.height = unit(0.6, "cm"),
+#     legend.key.width = unit(1.2, "cm")
+#   ) +
+#   guides(
+#     fill = guide_colorbar(
+#       title.position = "top",
+#       title.hjust = 0.5,
+#       barwidth = unit(8, "cm"),
+#       barheight = unit(0.6, "cm")
+#     )
+#   )
+# 
+# class(population_map_pico)
 
 
 
@@ -187,33 +200,60 @@ tmap_mode("view")
 # Create the map object
 
 pico_population_map_1 <- tm_shape(pop_wide_pico) +
-  tm_basemap("OpenStreetMap") +
+  tm_basemap("Esri.WorldStreetMap", alpha = 0.3) +
   tm_polygons(
     col = "population",
     palette = c("#87A0B4", "#1A4378"),
     style = "cont",
     border.col = "white",
     border.lwd = 0.3,
-    title = "",
+    title = "Legend\n─────────",  # <-- custom title here
     popup.format = list(fun = function(x) scales::comma(round(x))),
     legend.format = list(fun = function(x) scales::comma_format()(x)),
     na.show = FALSE
+  )+
+  tm_shape(pico_locations_sf) +
+  tm_dots(
+    col = "#ffffff",
+    border.col = "#28381e",
+    border.lwd = 2,
+    size = 0.4
   ) +
+  tm_text(
+    "name",
+    size = 0.4,
+    just = "center",         # keep it centered horizontally
+    ymod = -0.5,              # nudge upward
+    fontface = "bold",
+    fontfamily = "Calibri"
+  )+
   tm_shape(pico_buffer_outline) +
-  tm_borders(col = "black", lwd = 2) +
+  tm_borders(col = "#9e400f", lwd = 2, lty = "dashed") +
   tm_shape(pico_blvd) +
-  tm_lines(col = "black", lwd = 2.5, alpha = 0.8) +
+  tm_lines(col = "#F4AB0B", lwd = 2.5, alpha = 0.8) +
   tm_tiles("CartoDB.PositronOnlyLabels", group = "Streets & Labels") +
   tm_shape(pico_streets_single) +
-  tm_text("name", size = 0.6, col = "black", shadow = TRUE, auto.placement = TRUE) +
+  tm_text(
+    "name",
+    size = 0.6,
+    col = "black",
+    shadow = TRUE,
+    auto.placement = TRUE,
+    fontface = "bold",
+    fontfamily = "Calibri"
+  )+
   tm_scale_bar(position = c("right", "bottom")) +
   tm_compass(type = "8star", position = c("right", "top")) +
   tm_layout(
     frame = FALSE,
     legend.position = c("left", "bottom"),
-    legend.bg.color = NA,
-    legend.bg.alpha = 0,
-    legend.frame = FALSE
+    legend.bg.color = "white",      # white background
+    legend.bg.alpha = 0.8,          # semi-transparent white (1 = solid)
+    legend.frame = TRUE,            # optional border around legend
+    legend.title.size = 1.2,        # optional: make title a bit bigger
+    legend.title.color = "black",  # optional: set title color
+    legend.text.color = "black",   # optional: set item text color
+    legend.title.fontface = "bold" # optional: bold title
   )+
   tm_view(set.zoom = 10)
 
