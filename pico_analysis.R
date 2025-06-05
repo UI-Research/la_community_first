@@ -121,18 +121,20 @@ combined <- combined %>%
 colors <- c("Pico" = rgb(135, 160, 180, maxColorValue = 255), 
             "LA City" = rgb(26, 67, 120, maxColorValue = 255))
 
-#Plot
+#plot
 ggplot(combined, aes(x = age_group, y = share, fill = area)) +
   geom_col(position = position_dodge(width = 0.8), width = 0.7) +
   geom_text(aes(label = label),
-            position = position_dodge(width = 0.8), 
-            vjust = -0.5, size = 4) +
-  scale_fill_manual(values = colors) +
+            position = position_dodge(width = 0.8),
+            vjust = 1.5,          # inside the bar, near top but inside
+            color = "white",      # white text
+            size = 4) +
+  scale_fill_manual(values = colors, name = NULL) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
   labs(
-    x = "Age Group",
-    y = "Share of Total Population",
-    fill = NULL,
+    x = NULL,
+    y = NULL,
+    title = NULL
   ) +
   theme_minimal(base_size = 14) +
   theme(
