@@ -1,6 +1,6 @@
 ### Data gathering file for the Pico Boulevard SCA ###
 
-clean_and_prepare_data <- function() {
+clean_and_prepare_data <- function(file_path, corridor_name = "Pico") {
   # Load necessary libraries
   library(tidycensus)
   library(tmap)
@@ -13,10 +13,7 @@ clean_and_prepare_data <- function() {
   library(scales)
   library(osmdata)
   library(writexl)
-  
-  # Set working directory and file paths
-  username <- getwd() %>% str_split("\\/") %>% unlist() %>% .[3]
-  file_path <- file.path("C:", "Users", username, "Box", "LA Transit project/Social Climate Analysis")
+
   
   # Set ACS parameters
   year <- 2023
@@ -38,7 +35,8 @@ clean_and_prepare_data <- function() {
       county = county_fips,
       table = tbl,
       year = year,
-      output = "wide"
+      output = "wide",
+      cache_table = T
     )
   }
   
@@ -90,20 +88,6 @@ clean_and_prepare_data <- function() {
 
 
 
-
-#### Step 4: Making a separate df of Los Angeles city census data ####
-
-#loading in LA city tracts
-la_city_tracts <- st_read(file.path(file_path, "/Data/LA tracts/LA_City_2020_Census_Tracts_.shp"))%>%
-  mutate(GEOID = paste0("06037", CT20))
-
-#filter census data to LA city tracts
-la_city_master_data <- la_acs_sf %>%
-  filter(GEOID %in% la_city_tracts$GEOID) %>%
-  st_as_sf()
-
-#save la city master data file as csv
-write.csv(la_city_master_data, file = file.path(file_path, "/Data/la_city_master_data.csv"))
 
 
 
