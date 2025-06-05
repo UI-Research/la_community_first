@@ -1,14 +1,4 @@
-library(tidycensus)
-library(tmap)
-library(cols4all)
-library(tidyverse)
-library(readxl)
-library(openxlsx)
-library(geofacet)
-library(sf)
-library(scales)
-
-### Data gathering file for the Pico Boulevard SCA ###
+#data pull and cleaning for la city
 
 clean_and_prepare_data <- function(file_path) {
   # Load necessary libraries
@@ -23,7 +13,7 @@ clean_and_prepare_data <- function(file_path) {
   library(scales)
   library(osmdata)
   library(writexl)
-
+  
   
   # Set ACS parameters
   year <- 2023
@@ -65,27 +55,17 @@ clean_and_prepare_data <- function(file_path) {
   # Load external shapefiles
   CA_tracts <- st_read(file.path(file_path, "Hoover/Mapping/CA_census_Tracts.shp"), quiet = TRUE)
   la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.shp"), quiet = TRUE)
-  pico_buffer_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"), quiet = TRUE)
+  la_city_tracts <- st_read(file.path(file_path, "/Data/LA tracts/LA_City_2020_Census_Tracts_.shp"))%>%
+    mutate(GEOID = paste0("06037", CT20))
   
-  # Extract relevant Pico tracts
-  pico_tracts <- la_shp %>%
-    filter(GEOID %in% pico_buffer_tracts$GEOID)
-  
-  # Get major streets within Pico tract bounding box
-  bbox <- st_bbox(pico_tracts)
-  streets <- opq(bbox = bbox) %>%
-    add_osm_feature(key = "highway") %>%
-    osmdata_sf()
-  
-  major_streets <- streets$osm_lines %>%
-    filter(highway %in% c("primary", "secondary", "tertiary")) %>%
-    st_transform(st_crs(pico_tracts)) %>%
-    st_intersection(st_union(st_geometry(pico_tracts)))
-  
-  # Filter ACS data to Pico tracts
-  pico_master_data <- la_acs_sf %>%
-    filter(GEOID %in% pico_tracts$GEOID) %>%
+  #filter census data to LA city tracts
+  la_city_master_data <- la_acs_sf %>%
+    filter(GEOID %in% la_city_tracts$GEOID) %>%
     st_as_sf()
   
-  return(pico_master_data)
+  
+  return(la_city_master_data)
 }
+
+
+
