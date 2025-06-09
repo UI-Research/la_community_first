@@ -1195,6 +1195,96 @@ ggplot(combined, aes(x = tenure, y = share, fill = area)) +
 
 
 #################################################################### HLA Voting #######################################################
-hla_vote <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp"))
 
+hla_vote <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp"))
+library(lwgeom)
+
+hla_vote <- st_make_valid(hla_vote)
+
+
+CA_tracts <- st_read(file.path(file_path, "Hoover/Mapping/CA_census_Tracts.shp"), quiet = TRUE)
+la_shp <- st_read(file.path(file_path, "Data/tl_2023_06_tract/tl_2023_06_tract.shp"), quiet = TRUE)
+pico_buffer_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp"), quiet = TRUE)
+
+pico_tracts <- la_shp %>%
+  filter(GEOID %in% pico_buffer_tracts$GEOID)
+
+
+la_city_tracts <- st_read(file.path(file_path, "/Data/LA tracts/LA_City_2020_Census_Tracts_.shp"))%>%
+  mutate(GEOID = paste0("06037", CT20))
+
+#make sure crs matches
+pico_tracts <- st_transform(pico_buffer_tracts, crs = 4326)
+la_city_tracts <- st_transform(la_city_tracts, crs = 4326)
+hla_vote <- st_transform(hla_vote, crs = 4326)
+
+
+
+#find intersections with la and pico
+voting_in_pico <- st_filter(hla_vote, pico_tracts)
+voting_in_la <- st_filter(hla_vote, la_city_tracts)
+
+
+
+# summing data
+pico_hla <- voting_in_pico %>%
+  summarize(
+    total_yes = sum(V3_LOS_A_2, na.rm = T),
+    total = sum(V3_LOS_A_4, na.rm = T)
+  )%>%
+  mutate(
+    vote_share = total_yes/total
+  )
+
+la_hla  <- voting_in_la %>%
+  summarize(
+    total_yes = sum(V3_LOS_A_2, na.rm = T),
+    total = sum(V3_LOS_A_4, na.rm = T)
+  )%>%
+  mutate(
+    vote_share = total_yes/total
+  )
+
+
+#reshape and combine df's
+pico_long <- pico_hla %>%
+  select(starts_with("vote_")) %>%
+  mutate(area = "Pico") %>%
+  pivot_longer(cols = starts_with("vote_"), 
+               names_to = "vote", values_to = "share")
+
+city_long <- la_hla %>%
+  select(starts_with("vote_")) %>%
+  mutate(area = "LA City") %>%
+  pivot_longer(cols = starts_with("vote_"), 
+               names_to = "vote", values_to = "share")
+
+combined <- bind_rows(pico_long, city_long)%>%
+  mutate(
+    label = paste0(round(share * 100, 1), "%")  # Add percentage labels
+  )
+
+
+
+# custom colors per LA DOT style guide
+colors <- c("Pico" = rgb(135, 160, 180, maxColorValue = 255), 
+            "LA City" = rgb(26, 67, 120, maxColorValue = 255))
+
+
+#plot
+ggplot(combined, aes(x = area, y = share, fill = area)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = label),
+            vjust = 1.5,
+            color = "white",
+            size = 4) +
+  scale_fill_manual(values = colors, name = NULL) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                     limits = c(0, 1)) +
+  labs(x = NULL, y = NULL, title = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    panel.grid.major.x = element_blank()
+  )
 
