@@ -13,6 +13,9 @@ clean_and_prepare_data <- function(file_path) {
   library(scales)
   library(osmdata)
   library(writexl)
+  library(dplyr)
+  library(stringr)
+  
 
   
   # Set ACS parameters

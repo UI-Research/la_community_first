@@ -6,6 +6,7 @@ source("C:/Users/tmaginn/Documents/GitHub/la_community_first/data_pull.R")
 username <- getwd() %>% str_split("\\/") %>% unlist() %>% .[3]
 file_path <- file.path("C:", "Users", username, "Box", "LA Transit project/Social Climate Analysis")
 
+
 # Call the function and store the result
 pico_master_data <- clean_and_prepare_data(file_path)
 
@@ -1287,4 +1288,5 @@ ggplot(combined, aes(x = area, y = share, fill = area)) +
     legend.position = "none",
     panel.grid.major.x = element_blank()
   )
+
 
