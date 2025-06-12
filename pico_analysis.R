@@ -1,3 +1,6 @@
+###load list of 2023 acs variables
+v23 <- load_variables(2023, "acs5", cache = TRUE)
+
 ### Load the script for pico data ###
 source("C:/Users/tmaginn/Documents/GitHub/la_community_first/data_pull.R")
 

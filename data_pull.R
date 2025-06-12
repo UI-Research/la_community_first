@@ -1,5 +1,15 @@
 ### Data gathering file for the Pico Boulevard SCA ###
 
+library(tidycensus)
+library(tmap)
+library(cols4all)
+library(tidyverse)
+library(readxl)
+library(openxlsx)
+library(geofacet)
+library(sf)
+library(scales)
+
 clean_and_prepare_data <- function(file_path) {
   # Load necessary libraries
   library(tidycensus)
@@ -48,7 +58,7 @@ clean_and_prepare_data <- function(file_path) {
     reduce(full_join, by = "GEOID")
   
   la_acs <- acs_data %>%
-    select(GEOID, NAME, ends_with("E")) %>%
+    select(GEOID, NAME.x, ends_with("E")) %>%
     rename_with(~ str_remove(., "E$"))
   
   # Merge with shapefile
