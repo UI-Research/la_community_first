@@ -1,7 +1,9 @@
-### more efficient version of "pico_analysis.R"
+### click on sections below to see code
 
 
-### Load the script for pico data ###
+
+#### Loading stuff in ####
+
 source("C:/Users/tmaginn/Documents/GitHub/la_community_first/data_pull.R")
 
 
@@ -33,9 +35,10 @@ v23 <- load_variables(2023, "acs5", cache = TRUE)
 theme_set(theme_minimal(base_family = "Arial"))
 
 
-### We will make charts by creating some modular functions, then calling functions according to the census variable we want to analyze ###
+#### We will make charts by creating some modular functions, then calling functions according to the census variable we want to analyze ###
 
 
+#### Function definitions ####
 ### Function to compute group shares ###
 compute_shares <- function(df, var_list, total_var) {
   total_population <- sum(df[[total_var]], na.rm = TRUE)
@@ -121,7 +124,8 @@ plot_indicator <- function(pico_data, la_data, var_list, total_var,
 
 
 
-############################################## making charts ##########################################
+
+#### steps for making charts ##########################################
 
 ## After running the code above, making charts requires 3/4 steps:
 
@@ -132,6 +136,7 @@ plot_indicator <- function(pico_data, la_data, var_list, total_var,
   # 3. (if necessary) custom order the axis
 
   # 4. Run the 'plot_indicator' function by passing through the necessary arguments (see below for an example)
+
 
 
 
@@ -282,7 +287,6 @@ plot_indicator(
 
 
 
-
 #### Gender ####
 
 gender_vars <- list(
@@ -313,6 +317,7 @@ plot_indicator(
 )
 
   
+
 
 #### Family Structure ####
 
@@ -567,8 +572,6 @@ plot_indicator(
   title = "Tenure: Pico vs LA City",
   colors = colors
 )
-
-
 
 
 
