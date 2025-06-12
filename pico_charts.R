@@ -190,6 +190,7 @@ plot_indicator(
 
 
 
+
 #### Ethnicity ####
 
 #custom variables and labels
@@ -233,58 +234,7 @@ plot_indicator(
   colors = colors
 )
 
-
-
-
-#### Employment status - this one is slightly different because our bars are calculated differently ####
-
-# employment bins and labels
-employment_bins <- list(
-  labor_force = c("B23001_006", "B23001_013", "B23001_020", "B23001_027", "B23001_034", "B23001_041", "B23001_048", "B23001_055", "B23001_062", "B23001_069",
-                  "B23001_074", "B23001_079", "B23001_084", "B23001_092", "B23001_099", "B23001_106", "B23001_113", "B23001_120", "B23001_127", "B23001_134",
-                  "B23001_141", "B23001_148", "B23001_155", "B23001_160", "B23001_165", "B23001_170"),
-  employed = c("B23001_007", "B23001_014", "B23001_021", "B23001_028", "B23001_035", "B23001_042", "B23001_049", "B23001_056", "B23001_063", "B23001_070",
-               "B23001_075", "B23001_080", "B23001_085", "B23001_093", "B23001_100", "B23001_107", "B23001_114", "B23001_121", "B23001_128", "B23001_135",
-               "B23001_142", "B23001_149", "B23001_156", "B23001_161", "B23001_166", "B23001_171"),
-  unemployed =  c("B23001_008", "B23001_015", "B23001_022", "B23001_029", "B23001_036", "B23001_043", "B23001_050", "B23001_057", "B23001_064", "B23001_071",
-                  "B23001_076", "B23001_081", "B23001_086", "B23001_094", "B23001_101", "B23001_108", "B23001_115", "B23001_122", "B23001_129", "B23001_136",
-                  "B23001_143", "B23001_150", "B23001_157", "B23001_162", "B23001_167", "B23001_172"),
-  not_in_labor_force =  c("B23001_009", "B23001_016", "B23001_023", "B23001_030", "B23001_037", "B23001_044", "B23001_051", "B23001_058", "B23001_065", "B23001_072",
-                          "B23001_077", "B23001_082", "B23001_087", "B23001_095", "B23001_102", "B23001_109", "B23001_116", "B23001_123", "B23001_130", "B23001_137",
-                          "B23001_144", "B23001_151", "B23001_158", "B23001_163", "B23001_168", "B23001_173")
-)
-
-
-employment_labels <- c(
-  "share_employed" = "Employed",
-  "share_unemployed" = "Unemployed"
-)
-
-
-#custom color palette per LA DOT style guide
-colors <- c("Pico" = rgb(135, 160, 180, maxColorValue = 255),
-            "LA City" = rgb(26, 67, 120, maxColorValue = 255))
-
-
-#bar order for plotting
-bar_order <- c("Employed", "Unemployed")
-
-
-#plot
-plot_indicator(
-  pico_data = pico_master_data,
-  la_data = la_city_master_data,
-  var_list = employment_bins,
-  total_var = labor_force,
-  labels = ethnicity_labels,
-  group_order = bar_order,
-  title = "Employment Distribution: Pico vs LA City",
-  colors = colors
-)
-
-
-
-
+                                                                                                                                      
 
 
 #### Gender ####
@@ -319,6 +269,7 @@ plot_indicator(
   
 
 
+
 #### Family Structure ####
 
 family_bins <- list(
@@ -351,6 +302,7 @@ plot_indicator(
   title = "Family Structure: Pico vs LA City",
   colors = colors
 )
+
 
 
 
@@ -394,6 +346,7 @@ plot_indicator(
 
 
 
+
 #### Primary language (we specifically care about the languages spoken for people who do not speak english well) ####
 #note that you may have to change which languages to display on the chart depending on which languages are most common in each study area
 
@@ -431,6 +384,7 @@ plot_indicator(
 
 
 
+
 #### Device/Internet Access ####
 device_bins <- list(
   no_smartphone = c("B28001_004", "B28001_008", "B28001_010"),
@@ -460,6 +414,7 @@ plot_indicator(
   title = "Device Access: Pico vs LA City",
   colors = colors
 )
+
 
 
 
@@ -499,6 +454,7 @@ plot_indicator(
   title = "Commute Mode: Pico vs LA City",
   colors = colors
 )
+
 
 
 
@@ -546,6 +502,7 @@ plot_indicator(
 
 
 
+
 #### Tenure ####
 tenure_vars <- list(
   owner = "B25003_002",
@@ -576,6 +533,27 @@ plot_indicator(
 
 
 
+
+
+
+
+
+#### Employment status - difficult bc the denominators differ for computing different bars ((un)employment uses labor force, mnot in labor force uses total population) ####
+
+employment_bins <- list(
+  labor_force = c("B23001_006", "B23001_013", "B23001_020", "B23001_027", "B23001_034", "B23001_041", "B23001_048", "B23001_055", "B23001_062", "B23001_069",
+                  "B23001_074", "B23001_079", "B23001_084", "B23001_092", "B23001_099", "B23001_106", "B23001_113", "B23001_120", "B23001_127", "B23001_134",
+                  "B23001_141", "B23001_148", "B23001_155", "B23001_160", "B23001_165", "B23001_170"),
+  employed = c("B23001_007", "B23001_014", "B23001_021", "B23001_028", "B23001_035", "B23001_042", "B23001_049", "B23001_056", "B23001_063", "B23001_070",
+               "B23001_075", "B23001_080", "B23001_085", "B23001_093", "B23001_100", "B23001_107", "B23001_114", "B23001_121", "B23001_128", "B23001_135",
+               "B23001_142", "B23001_149", "B23001_156", "B23001_161", "B23001_166", "B23001_171"),
+  unemployed =  c("B23001_008", "B23001_015", "B23001_022", "B23001_029", "B23001_036", "B23001_043", "B23001_050", "B23001_057", "B23001_064", "B23001_071",
+                  "B23001_076", "B23001_081", "B23001_086", "B23001_094", "B23001_101", "B23001_108", "B23001_115", "B23001_122", "B23001_129", "B23001_136",
+                  "B23001_143", "B23001_150", "B23001_157", "B23001_162", "B23001_167", "B23001_172"),
+  not_in_labor_force =  c("B23001_009", "B23001_016", "B23001_023", "B23001_030", "B23001_037", "B23001_044", "B23001_051", "B23001_058", "B23001_065", "B23001_072",
+                          "B23001_077", "B23001_082", "B23001_087", "B23001_095", "B23001_102", "B23001_109", "B23001_116", "B23001_123", "B23001_130", "B23001_137",
+                          "B23001_144", "B23001_151", "B23001_158", "B23001_163", "B23001_168", "B23001_173")
+)
 
 
 
