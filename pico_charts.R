@@ -541,6 +541,7 @@ plot_indicator(
 #### Employment status - difficult bc the denominators differ for computing different bars ((un)employment uses labor force, mnot in labor force uses total population) ####
 
 employment_bins <- list(
+  total_pop = "B23001_001",
   labor_force = c("B23001_006", "B23001_013", "B23001_020", "B23001_027", "B23001_034", "B23001_041", "B23001_048", "B23001_055", "B23001_062", "B23001_069",
                   "B23001_074", "B23001_079", "B23001_084", "B23001_092", "B23001_099", "B23001_106", "B23001_113", "B23001_120", "B23001_127", "B23001_134",
                   "B23001_141", "B23001_148", "B23001_155", "B23001_160", "B23001_165", "B23001_170"),
