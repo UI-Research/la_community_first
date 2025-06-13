@@ -1,5 +1,15 @@
 #data pull and cleaning for la city
 
+library(tidycensus)
+library(tmap)
+library(cols4all)
+library(tidyverse)
+library(readxl)
+library(openxlsx)
+library(geofacet)
+library(sf)
+library(scales)
+
 clean_and_prepare_data <- function(file_path) {
   # Load necessary libraries
   library(tidycensus)
@@ -13,6 +23,9 @@ clean_and_prepare_data <- function(file_path) {
   library(scales)
   library(osmdata)
   library(writexl)
+  library(dplyr)
+  library(stringr)
+  
   
   
   # Set ACS parameters
@@ -23,7 +36,7 @@ clean_and_prepare_data <- function(file_path) {
   
   # List of ACS tables to pull
   tables <- c("B01001", "B03002", "B05006", "B18101", "B19013", "B17001", "B23001", 
-              "B11003", "B18102", "B18103", "B18105", "B23022", "B28002", "B28001", 
+              "B11003", "B18102", "B18103", "B18105", "B23001", "B23022", "B28002", "B28001", 
               "B25003", "B16004", "C16001", "B25070", "B25092", "B25091", "B25044", 
               "B08301", "B08303")
   
@@ -45,7 +58,7 @@ clean_and_prepare_data <- function(file_path) {
     reduce(full_join, by = "GEOID")
   
   la_acs <- acs_data %>%
-    select(GEOID, NAME, ends_with("E")) %>%
+    select(GEOID, NAME.x, ends_with("E")) %>%
     rename_with(~ str_remove(., "E$"))
   
   # Merge with shapefile
