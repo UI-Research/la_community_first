@@ -1,0 +1,344 @@
+```{r}
+library(tidyverse)
+library(sf)
+library(tmap)
+library(here)
+library(osmdata)
+
+source(here("scripts", "get_acs_data.R"))
+source(here("scripts", "plot_utility_functions.R"))
+source(here("scripts", "plot_comparison_charts.R"))
+source(here("scripts", "plot_boulevard_map.R"))
+source(here("scripts", "plot_acs_maps.R"))
+source(here("scripts", "get_non_acs_data.R"))
+
+# Set working directory and file paths
+username <- getwd() %>% str_split("\\/") %>% unlist() %>% .[3]
+file_path <- file.path("C:", "Users", username, "Box", "LA Transit project", "Social Climate Analysis")
+
+#custom color palette per LA DOT style guide
+color_palette <- c(
+  "Pico" = rgb(135, 160, 180, maxColorValue = 255),
+  "LA City" = rgb(26, 67, 120, maxColorValue = 255))
+
+options(
+  tigris_use_cache = TRUE,
+  scipen = 999999)
+```
+
+Set a boulevard variable
+
+```{r}
+boulevard = "Pico"
+boulevard_tracts = file.path(file_path, "Data", "Mapping", "Boulevards", boulevard, str_c(boulevard, "_buffer_tracts.shp")) %>%
+  st_read(quiet = TRUE)
+```
+
+Obtaining ACS data
+
+```{r}
+acs_data_la = get_acs_data(
+  file_path = file_path, 
+  area = "LA")
+acs_data_boulevard = acs_data_la %>%
+  filter(GEOID %in% boulevard_tracts$GEOID)
+```
+
+Plotting comparison charts (Teddy)
+
+This includes the following figures:
+
+-   Figure 3 (age distribution)
+
+-   Figure 4 (ethnicity)
+
+-   Figure 7 (employment status – partly complete)
+
+-   Figure 8 (gender)
+
+-   Figure 9 (household structure)
+
+-   Figure 10 (speak english well)
+
+-   Figure 11 (other languages)
+
+-   Figure 20 (Internet and device access)
+
+-   Figure 21 (housing tenure)
+
+-   Figure 29 (commute mode)
+
+-   Figure 30 (commute time)
+
+```{r}
+comparison_charts = plot_comparison_charts(
+  df_boulevard = acs_data_boulevard, 
+  df_city = acs_data_la,
+  color = color_palette)
+
+comparison_charts
+```
+
+
+Prepare spatial layers
+
+```{r}
+## tracts
+la_tracts <- st_read(file.path(file_path, "Hoover/Mapping/CA_census_Tracts.shp")) %>% 
+  filter(COUNTYFP == "037") %>%
+  st_transform(4326)
+
+boulevard_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp")) %>%
+  st_transform(4326) %>%
+  st_make_valid()
+boulevard_tracts <- la_tracts %>%
+  filter(GEOID %in% boulevard_tracts$GEOID)
+
+# #streets
+# streets <- opq(bbox = st_bbox(boulevard_tracts)) %>%
+#   add_osm_feature(key = "highway") %>%  # 'highway' includes roads, streets, etc.
+#   osmdata_sf()
+# 
+# street_lines <- streets$osm_lines
+# 
+# #filter to main streets
+# major_streets <- street_lines %>%
+#   filter(highway %in% c("primary", "secondary", "tertiary")) %>%
+#   st_transform(st_crs(boulevard_tracts))
+# 
+# #create a version that clips the streets to the focus area
+# major_streets_clipped <- st_intersection(
+#   major_streets, 
+#   st_union(st_geometry(boulevard_tracts)))
+# 
+# if (boulevard == "Pico") {
+#   major_street_names = c(
+#     "West Pico Boulevard", "South Hoover Street", "Crenshaw Boulevard", 
+#     "West Washington Boulevard", "West Olympic Boulevard") }
+# 
+# if (boulevard == "Hoover") {
+#   stop("Need to update this section with specified street names.") }
+# 
+# if (boulevard == "MLK") {
+#   stop("Need to update this section with specified street names.") }
+
+# # street centroids for placing labels
+# boulevard_streets <- major_streets_clipped %>%
+#   filter(name %in% major_street_names) %>%
+#   st_centroid() %>%
+#   distinct(name, .keep_all = TRUE)
+
+## will need to update this 
+streets_sf = tribble(
+  ~name, ~lat, ~lon, ~orientation, ~boulevard,
+  "Wilshire Blvd", 34.06217056027787, -118.29424612980146, 0, "Pico",
+  "Olympic Blvd", 34.05754326508076, -118.34502694326508, 0, "Pico",
+  "Washington Blvd", 34.040903520026625, -118.34737421737195, -10, "Pico",
+  "Rosa Parks Fwy", 34.036465982980886, -118.29767182226023, 0, "Pico",
+  "Adams Blvd", 34.03269373951439, -118.32913139124288, 0, "Pico",
+  "Jefferson Blvd", 34.02561814866123, -118.30665073948451, 0, "Pico",
+  "La Brea Ave", 34.037457517681425, -118.34948870419119, 75, "Pico",
+  "Crenshaw Blvd",  34.0304238641463, -118.33551198275727, 90, "Pico",
+  "Arlington Ave",  34.03130279886178, -118.31775449166764, 90, "Pico",
+  "Western Ave", 34.03064831048125, -118.30907566457537, 90, "Pico",
+  "Normandie Ave", 34.03140186970061, -118.30027509279961, 90, "Pico",
+  "Vermont Ave", 34.031803023478986, -118.29147407689182, 90, "Pico",
+  "Hoover St", 34.032704496302415, -118.28419323202331, 90, "Pico",
+  "Harbor Fwy", 34.05418379708543, -118.25980368140354, 55, "Pico") %>%
+  st_as_sf(
+    coords = c("lon", "lat"),
+    crs = 4326) %>%
+  filter(boulevard == !!boulevard)
+
+#key locations
+locations_sf = tribble(
+  ~name, ~lon, ~lat, ~boulevard,
+  "Harold A Henry Park", -118.326204, 34.05771, "Pico",
+  "MacArthur Park", -118.277825, 34.059539, "Pico",
+  #"Los Angeles Elementary School", -118.30564277817867, 34.04767415795226, "Pico",
+  #"Los Angeles High School", -118.33290205238154, 34.05631575779619,  "Pico",
+  "Normandie Recreation Center", -118.299765, 34.044543, "Pico"
+  ) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+boulevard_outline <- st_union(boulevard_tracts) %>%
+  st_transform(4326)
+boulevard_corridor <- st_read(file.path(file_path, "Pico/Maps/pico_blvd.shp")) %>%
+  st_transform(4326)
+```
+
+Plot choropleths
+```{r, fig.width = 6.5, fig.height = 5}
+plot_acs_maps(
+  sf = acs_data_boulevard,
+  boulevard_sf = boulevard_corridor,
+  locations_sf = pico_locations_sf,
+  study_area_outline_sf = boulevard_outline,
+  streets_sf = streets_sf,
+  save = FALSE,
+  outpath = file.path(file_path, "Pico", "Outputs"),
+  file_extension = ".png")
+```
+
+Non-ACS data
+```{r}
+affordable_housing_sf = get_non_acs_data(
+  base_path = file_path,
+  dataset_name = "affordable_housing",
+  area = boulevard)
+
+senior_housing_sf = get_non_acs_data(
+  base_path = file_path,
+  dataset_name = "senior_housing",
+  area = boulevard)
+
+zoning_sf = get_non_acs_data(
+  base_path = file_path,
+  dataset_name = "zoning",
+  area = boulevard)
+
+h_and_t_df = get_non_acs_data(
+  base_path = file_path,
+  dataset_name = "h_and_t",
+  area = boulevard)
+
+crash_sf = get_non_acs_data(
+  base_path = file_path,
+  dataset_name = "crash",
+  area = boulevard)
+
+hla_sf = get_non_acs_data(
+  base_path = file_path,
+  dataset_name = "hla",
+  area = boulevard)
+
+```
+
+Non-ACS maps
+```{r}
+## affordable housing
+## note: need to expand context or figure out how to use tracts to provide context
+## the way we do for choropleths
+plot_boulevard_map(
+  sf = affordable_housing_sf,
+  boulevard_sf = boulevard_corridor,
+  fill_column = "black",
+  locations_sf = locations_sf,
+  study_area_outline_sf = boulevard_outline,
+  streets_sf = streets_sf,
+  legend_title = "Affordable Housing",
+  palette_colors = color_palette,
+  style = "cont",
+  map_type = "point",
+  save = FALSE,
+  file_extension = ".png",
+  outpath = file.path(file_path, "Pico", "Outputs"))
+
+## senior housing
+## note: need to expand context or figure out how to use tracts to provide context
+## the way we do for choropleths
+plot_boulevard_map(
+  sf = senior_housing_sf,
+  boulevard_sf = boulevard_corridor,
+  fill_column = "black",
+  locations_sf = locations_sf,
+  study_area_outline_sf = boulevard_outline,
+  streets_sf = streets_sf,
+  legend_title = "Senior Housing",
+  palette_colors = color_palette,
+  style = "cont",
+  map_type = "point",
+  save = FALSE,
+  file_extension = ".png",
+  outpath = file.path(file_path, "Pico", "Outputs"))
+
+## zoning
+plot_boulevard_map(
+  sf = zoning_sf,
+  boulevard_sf = boulevard_corridor,
+  fill_column = "zoning_category",
+  locations_sf = locations_sf,
+  study_area_outline_sf = boulevard_outline,
+  streets_sf = streets_sf,
+  legend_title = "Zoning",
+  style = "cat",
+  map_type = "choropleth",
+  border_color = NA,
+  save = FALSE,
+  file_extension = ".png",
+  outpath = file.path(file_path, "Pico", "Outputs"))
+```
+
+Old code / code that isn't incorporated into other scripts
+```{r}
+boulevard_hla = get_hla_data("Pico")
+la_hla = get_hla_data(area = "LA")
+
+bind_rows(
+  boulevard_hla %>%
+    mutate(area = "Pico"),
+  la_hla %>%
+    mutate(area = "LA City")) %>%
+  ggplot(aes(x = area, y = vote_share, fill = area)) +
+    geom_col(width = 0.6) +
+    geom_text(
+      aes(label = round(vote_share, digits = 2) %>% scales::percent()),
+      vjust = 1.5,
+      color = "white",
+      size = 4) +
+    scale_fill_manual(values = color_palette, name = NULL) +
+    scale_y_continuous(
+      labels = scales::percent_format(accuracy = 1),
+      limits = c(0, 1)) +
+    labs(x = NULL, y = NULL, title = NULL) +
+    theme_minimal(base_size = 14) +
+    theme(
+      legend.position = "top",
+      panel.grid.major.x = element_blank())
+```
+
+```{r}
+#restructure so that each row is a census tract
+country_origin <- 
+  get_acs(
+    geography = "tract",
+    table = "B05006",
+    state = "06",
+    county = "037",
+    year = 2023,
+    survey = "acs5",
+    geometry = FALSE)
+
+#filter for pico tracts 
+country_origin_filtered_pico <- country_origin %>%
+  filter(GEOID %in% pico_tracts$GEOID)
+
+country_of_origin_totals <- country_origin_filtered_pico %>%
+  group_by(variable) %>%
+  summarise(total = sum(estimate, na.rm = TRUE), .groups = "drop")
+
+##calculate total # share of foreign born
+
+#divide by the total population 
+foreign_value <- country_origin_filtered_pico %>%
+  filter(variable == "B05006_001") %>%
+  summarise(total_estimate = sum(estimate, na.rm = TRUE)) %>%
+  mutate(result = total_estimate / variable) %>%
+  pull(result)
+
+#after reviewing the table above, edit to manually pull out the highest (in this case I chose the top countries with more than 1,000). This is done manually because some of the variables include 'Total', 'Asia', 'Central America', etc.
+country_origin_top_10_pico <- country_origin_filtered_pico %>%
+  filter(GEOID %in% pico_tracts$GEOID) %>%
+  mutate(country = case_when(
+    variable == "B05006_158" ~ "Guatemala",
+    variable == "B05006_157" ~ "El Salvador",
+    variable == "B05006_160" ~ "Mexico",
+    variable == "B05006_054" ~ "Korea",
+    variable == "B05006_049" ~ "China",
+    variable == "B05006_074" ~ "Phillipnes",
+    variable == "B05006_159" ~ "Honduras"
+  )) %>%
+  group_by(country) %>%
+  summarise(total = sum(estimate, na.rm = TRUE), .groups = "drop") %>%
+  mutate(share_pop = total / totalpop)
+```
