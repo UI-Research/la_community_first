@@ -187,10 +187,10 @@ plot_acs_maps = function(
       "bin_median_share_income_housing_cost"), ## median share income housing cost
     legend_title = c(
       "Total Population",
-      "Disability, All Types",
-      "Disability, Hearing ",
-      "Disability, Vision",
-      "Disability, Ambulatory",
+      "Disability,\n All Types",
+      "Disability,\n Hearing ",
+      "Disability,\n Vision",
+      "Disability,\n Ambulatory",
       "Median Income",
       "Below Poverty Level",
       "No Internet Access",
