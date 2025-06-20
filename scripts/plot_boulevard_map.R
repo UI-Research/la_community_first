@@ -85,18 +85,13 @@ plot_boulevard_map = function(
     map1 = 
       tm_shape(sf, bbox = st_bbox(sf %>% st_buffer(1000))) +
       tm_dots(
+        #palette = palette_colors,
         col = fill_column,
-        fill = fill_column,
-        # palette = palette_colors,
-        fill_alpha = 0.7,
+        col_alpha = 0.7,
         # style = "cat",
         # border.col = border_color,
         # border.lwd = 0.3,
         size = 0.5,
-        fill.legend = tm_legend(
-          title = legend_title, 
-          frame = FALSE,
-          item.space = .75),
         col.legend = tm_legend(
           title = legend_title, 
           frame = FALSE,
@@ -105,10 +100,12 @@ plot_boulevard_map = function(
   
     }
 
+  
+  
   ## points of interest
   map2 = 
     ## study area outline
-    tm_shape(boulevard_sf %>% st_buffer(804.672)) +
+    tm_shape(boulevard_sf %>% st_buffer(804.672), unit = "mi") +
       tm_borders(col = "#9e400f", lwd = 2, lty = "dashed") +
     ## the boulevard
     tm_shape(boulevard_sf) +
@@ -139,11 +136,14 @@ plot_boulevard_map = function(
     tm_compass(
       type = "arrow", 
       size = 1,
-      group_id = "bottom_right") +
+      #group_id = "bottom_right",
+      position = c(.72, .12)
+      ) +
     ## a scalebar
     tm_scalebar(
       breaks = c(0, 1, 2),
-      group_id = "bottom_right",
+      #group_id = "bottom_right",
+      position = c(.75, .1),
       text.size = .7) +
     ## the legend
     tm_layout(
@@ -158,8 +158,8 @@ plot_boulevard_map = function(
       legend.text.color = "black",   
       legend.title.fontface = "bold") +
     ## the basemap
-    tm_basemap("Esri.WorldGrayCanvas") +
-    tm_comp_group("bottom_right", position = tm_pos_on_top("right", "bottom"), stack = "horizontal")
+    tm_basemap("Esri.WorldGrayCanvas") #+
+    #tm_comp_group("bottom_right", position = tm_pos_on_top("right", "BOTTOM"), stack = "horizontal")
   
   map = map1 + map2
   

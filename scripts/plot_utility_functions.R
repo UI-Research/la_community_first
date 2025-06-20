@@ -91,6 +91,7 @@ plot_indicator <- function(
     colors = color_palette,
     ...) {
 
+  
   var_list = get(var_list, envir = sys.frames()[[1]])
   labels = get(labels, envir = sys.frames()[[1]])
   group_order = get(group_order, envir = sys.frames()[[1]])
