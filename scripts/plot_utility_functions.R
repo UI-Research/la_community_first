@@ -96,6 +96,7 @@ plot_indicator <- function(
     outpath = outpath,
     ...) {
 
+  
   var_list = get(var_list, envir = sys.frames()[[1]])
   labels = get(labels, envir = sys.frames()[[1]])
   group_order = get(group_order, envir = sys.frames()[[1]])
@@ -126,5 +127,5 @@ plot_indicator <- function(
       dpi = 1000) }
   
   return(plot)
-  
+
 }

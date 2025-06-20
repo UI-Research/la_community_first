@@ -205,6 +205,15 @@ plot_comparison_charts = function(
     "share_owner" = "Owner occupied")
   tenure_bar_order <- c("Renter occupied", "Owner occupied")
   
+  ####----Rent Burden----####
+  rent_burden_vars <- list(
+    rent_burden = c("B25070_007", "B25070_008", "B25070_009", "B25070_010"),
+    severe_rent_burden = "B25070_010")
+  rent_burden_labels <- c(
+    "share_rent_burden"  = "Rent burdened",
+    "share_severe_rent_burden" = "Severely rent burdened")
+  rent_burden_bar_order <- c("Rent burdened", "Severely rent burdened")
+  
   ####----Employment----####
   #difficult bc the denominators differ for computing different bars ((un)employment 
   #uses labor force, not in labor force uses total population)

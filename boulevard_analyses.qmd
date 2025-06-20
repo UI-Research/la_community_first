@@ -30,7 +30,7 @@ Set a boulevard variable
 
 ```{r}
 boulevard = "Pico"
-boulevard_tracts = file.path(file_path, "Data", "Mapping", "Boulevards", boulevard, str_c(boulevard, "_buffer_tracts.shp")) %>%
+boulevard_tracts = file.path(file_path, boulevard, "maps", str_c(boulevard, "_buffer_tracts.shp")) %>%
   st_read(quiet = TRUE)
 ```
 
@@ -142,10 +142,10 @@ streets_sf = tribble(
   "Adams Blvd", 34.03269373951439, -118.32913139124288, 0, "Pico",
   "Jefferson Blvd", 34.02561814866123, -118.30665073948451, 0, "Pico",
   "La Brea Ave", 34.037457517681425, -118.34948870419119, 75, "Pico",
-  "Crenshaw Blvd",  34.0304238641463, -118.33551198275727, 90, "Pico",
+  "Crenshaw Blvd",  34.05711289904235, -118.32165008801454, 67, "Pico",
   "Arlington Ave",  34.03130279886178, -118.31775449166764, 90, "Pico",
   "Western Ave", 34.03064831048125, -118.30907566457537, 90, "Pico",
-  "Normandie Ave", 34.03140186970061, -118.30027509279961, 90, "Pico",
+  "Normandie Ave", 34.03040186970061, -118.30027509279961, 90, "Pico",
   "Vermont Ave", 34.031803023478986, -118.29147407689182, 90, "Pico",
   "Hoover St", 34.032704496302415, -118.28419323202331, 90, "Pico",
   "Harbor Fwy", 34.05418379708543, -118.25980368140354, 55, "Pico") %>%
@@ -176,11 +176,11 @@ Plot choropleths
 plot_acs_maps(
   sf = acs_data_boulevard,
   boulevard_sf = boulevard_corridor,
-  locations_sf = pico_locations_sf,
+  locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  save = FALSE,
-  outpath = file.path(file_path, "Pico", "Outputs"),
+  save = TRUE,
+  outpath = file.path(file_path, "Pico", "Outputs", "acs_maps_updated"),
   file_extension = ".png")
 ```
 
@@ -234,9 +234,9 @@ plot_boulevard_map(
   palette_colors = color_palette,
   style = "cont",
   map_type = "point",
-  save = FALSE,
+  save = TRUE,
   file_extension = ".png",
-  outpath = file.path(file_path, "Pico", "Outputs"))
+  outpath = file.path(file_path, "Pico", "Outputs", "non_acs_maps_updated"))
 
 ## senior housing
 ## note: need to expand context or figure out how to use tracts to provide context
@@ -252,9 +252,9 @@ plot_boulevard_map(
   palette_colors = color_palette,
   style = "cont",
   map_type = "point",
-  save = FALSE,
+  save = TRUE,
   file_extension = ".png",
-  outpath = file.path(file_path, "Pico", "Outputs"))
+  outpath = file.path(file_path, "Pico", "Outputs", "non_acs_maps_updated"))
 
 ## zoning
 plot_boulevard_map(
@@ -268,9 +268,25 @@ plot_boulevard_map(
   style = "cat",
   map_type = "choropleth",
   border_color = NA,
-  save = FALSE,
+  save = TRUE,
   file_extension = ".png",
-  outpath = file.path(file_path, "Pico", "Outputs"))
+  outpath = file.path(file_path, "Pico", "Outputs", "non_acs_maps_updated"))
+
+
+## crashes
+plot_boulevard_map(
+  sf = crash_sf,
+  boulevard_sf = boulevard_corridor,
+  fill_column = "crash_type",
+  locations_sf = locations_sf,
+  study_area_outline_sf = boulevard_outline,
+  streets_sf = streets_sf,
+  legend_title = "Crashes",
+  map_type = "point",
+  border_color = NA,
+  save = TRUE,
+  file_extension = ".png",
+  outpath = file.path(file_path, "Pico", "Outputs", "non_acs_maps_updated"))
 ```
 
 Old code / code that isn't incorporated into other scripts

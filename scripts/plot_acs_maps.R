@@ -187,10 +187,10 @@ plot_acs_maps = function(
       "bin_median_share_income_housing_cost"), ## median share income housing cost
     legend_title = c(
       "Total Population",
-      "Disability, All Types",
-      "Disability, Hearing ",
-      "Disability, Vision",
-      "Disability, Ambulatory",
+      "Disability,\n All Types",
+      "Disability,\n Hearing ",
+      "Disability,\n Vision",
+      "Disability,\n Ambulatory",
       "Median Income",
       "Below Poverty Level",
       "No Internet Access",
@@ -206,7 +206,7 @@ plot_acs_maps = function(
     mutate(
       style = if_else(str_detect(fill_column, "bin"), "cat", "cont"),
       map_type = "choropleth") %>%
-    slice(1:2)
+    slice(1:2, 16)
 
   
   constructs = c("population", "disability", "disability_hearing", "disability_vision", 
@@ -214,7 +214,7 @@ plot_acs_maps = function(
                  "no_computer", "housing_tenure", "no_car", "commute_time", 
                  "korean_language", "spanish_language", 
                  "renter_housing_costburden_30plus", "renter_housing_costburden_50plus",
-                 "median_share_income_housing_cost") %>% .[1:2]
+                 "median_share_income_housing_cost") %>% .[c(1:2,16)]
   
   ## this iterates over each row in `plot_metadata` and applies each of the columns 
   ## from `plot_metadata` as arguments to the parameter of the same name in `map_variable()`

@@ -18,6 +18,8 @@ library(tmap)
 #' @param save A logical indicating whether to save the map to file. If `TRUE`, the map will be saved using the specified `file_extension`.
 #' @param file_extension The file extension to use when saving the map, e.g., ".png", ".svg". Defaults to ".png".
 #' @param outpath The path where the map will be saved.
+#' @param height height of saved plot
+#' @param width width of saved plot
 #' @param ... 
 #'
 #' @return A tmap object, which in turn can be decorated with additional tmap expressions
@@ -37,6 +39,8 @@ plot_boulevard_map = function(
     save,
     file_extension,
     outpath,
+    height = 4.5,
+    width = 6.5,
     ...) {
   ## for testing
   # sf = acs_data_boulevard
@@ -78,24 +82,30 @@ plot_boulevard_map = function(
   }
     
   if (map_type == "point") {
-    map1 = tm_shape(sf, bbox = st_bbox(sf %>% st_buffer(250))) +
+    map1 = 
+      tm_shape(sf, bbox = st_bbox(sf %>% st_buffer(1000))) +
       tm_dots(
+        #palette = palette_colors,
         col = fill_column,
-        palette = palette_colors,
-        fill_alpha = 0.7,
-        style = "cat",
-        border.col = border_color,
-        border.lwd = 0.3,
+        col_alpha = 0.7,
+        # style = "cat",
+        # border.col = border_color,
+        # border.lwd = 0.3,
         size = 0.5,
-        title = "Legend\n─────────",
-        legend.format = list(fun = function(x) scales::comma_format()(x)),
-        na.show = FALSE) 
+        col.legend = tm_legend(
+          title = legend_title, 
+          frame = FALSE,
+          item.space = .75)
+      )
+  
     }
 
+  
+  
   ## points of interest
   map2 = 
     ## study area outline
-    tm_shape(boulevard_sf %>% st_buffer(500)) +
+    tm_shape(boulevard_sf %>% st_buffer(804.672), unit = "mi") +
       tm_borders(col = "#9e400f", lwd = 2, lty = "dashed") +
     ## the boulevard
     tm_shape(boulevard_sf) +
@@ -126,11 +136,14 @@ plot_boulevard_map = function(
     tm_compass(
       type = "arrow", 
       size = 1,
-      group_id = "bottom_right") +
+      #group_id = "bottom_right",
+      position = c(.72, .12)
+      ) +
     ## a scalebar
     tm_scalebar(
       breaks = c(0, 1, 2),
-      group_id = "bottom_right",
+      #group_id = "bottom_right",
+      position = c(.75, .1),
       text.size = .7) +
     ## the legend
     tm_layout(
@@ -145,8 +158,8 @@ plot_boulevard_map = function(
       legend.text.color = "black",   
       legend.title.fontface = "bold") +
     ## the basemap
-    tm_basemap("Esri.WorldGrayCanvas") +
-    tm_comp_group("bottom_right", position = tm_pos_on_top("right", "bottom"), stack = "horizontal")
+    tm_basemap("Esri.WorldGrayCanvas") #+
+    #tm_comp_group("bottom_right", position = tm_pos_on_top("right", "BOTTOM"), stack = "horizontal")
   
   map = map1 + map2
   
@@ -156,8 +169,8 @@ plot_boulevard_map = function(
       filename = file.path(
         outpath, 
         str_c(legend_title %>% janitor::make_clean_names(), file_extension)),
-      width = 6.5,
-      height = 4.5,
+      width = width,
+      height = height,
       dpi = 1000,
       units = "in")
   }
