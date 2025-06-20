@@ -1,6 +1,5 @@
-####----Function definitions----####
-## We will make charts by creating some modular functions, then calling functions 
-## according to the census variable we want to analyze
+library(tidyverse)
+library(urbnthemes)
 
 ## Function to compute group shares
 compute_shares <- function(df, var_list, total_var) {
@@ -61,25 +60,27 @@ plot_comparison <- function(
       aes(x = .data[[x_var]], y = .data[[y_var]], fill = .data[[fill_var]])) +
     geom_col(position = position_dodge(width = 0.8), width = 0.7) +
     geom_text(
-      aes(label = ifelse(.data[[y_var]] >= 0.015, .data[[label_var]], "")),
+      aes(label = .data[[label_var]]),
       position = position_dodge(width = 0.8),
-      vjust = 1.5,
-      color = "white",
-      size = 4) +
+      vjust = -.5,
+      color = "black",
+      size = 8,
+      size.unit = "pt") +
     scale_fill_manual(values = colors, name = NULL) +
-    scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+    scale_y_continuous(
+      expand = expansion(mult = c(0,0.1)),
+      labels = scales::percent_format(accuracy = 1)) +
     labs(
       x = NULL,
       y = NULL,
       title = title) +
-    theme_minimal(base_size = 14) +
+    theme_urbn_print() +
     theme(
       legend.position = "top",
-      panel.grid.major.x = element_blank())
+      panel.grid.major.x = element_blank(),
+      text = element_text(family = "Arial", color = "black"))
 }
 
-## this combines all functions into one piece of code, so all we need to do is call
-## the wrapper function
 plot_indicator <- function(
     df_boulevard = df_boulevard, 
     df_city = df_city, 
@@ -88,7 +89,11 @@ plot_indicator <- function(
     labels, 
     group_order, 
     title = NULL, 
+    constructs,
     colors = color_palette,
+    save = save,
+    file_extension = file_extension,
+    outpath = outpath,
     ...) {
 
   var_list = get(var_list, envir = sys.frames()[[1]])
@@ -103,9 +108,23 @@ plot_indicator <- function(
   
   combined <- bind_rows(pico_long, la_long)
   
-  plot_comparison(
+  plot = plot_comparison(
     df = combined,
     colors = colors,
     group_order = group_order,
     title = title)
+
+  if (save == TRUE) {
+    ggsave(
+      plot = plot,
+      filename = file.path(
+        outpath, 
+        str_c(constructs %>% janitor::make_clean_names(), file_extension)),
+      width = 6.5,
+      height = 2.5,
+      units = "in",
+      dpi = 1000) }
+  
+  return(plot)
+  
 }

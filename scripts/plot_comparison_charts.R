@@ -12,12 +12,50 @@ source(here("scripts", "plot_utility_functions.R"))
 #'
 #' @param df_boulevard A data frame containing ACS data for a specific boulevard.
 #' @param df_city A data frame containing ACS data for the entire city of Los Angeles.
+#' @param color A color palette 
+#' @param constructs A character vector of demographic or socioeconomic constructs to be plotted.
+#' @param denominators A character vector of column names in `df_boulevard` and `df_city` that will be used as denominators for calculating shares.
+#' @param save A logical indicating whether to save the map to file. If `TRUE`, the map will be saved using the specified `file_extension`.
+#' @param file_extension The file extension to use when saving the map, e.g., ".png", ".svg". Defaults to ".png".
+#' @param outpath The path where the map will be saved.
 #'
 #' @return A list of ggplot objects, each representing a comparison chart for a specific demographic or socioeconomic indicator.
-plot_comparison_charts = function(df_boulevard, df_city, color) {
+plot_comparison_charts = function(
+    df_boulevard, 
+    df_city, 
+    color, 
+    constructs, 
+    denominators,
+    save = FALSE,
+    file_extension = ".png",
+    outpath) {
     
   #make sure everything is in Arial font per LA DOT style guide
   theme_set(theme_minimal(base_family = "Arial"))
+  ####----Income----####
+  ## Note: these should map to survey categories to the extent possible, which have 
+  ## upper breaks at: 30, 60, 100, 150, 200, and infinite
+  income_vars = list(
+    income_0_30 = str_c("B19001_00", c(2:6)),
+    income_30_60 = c("B19001_007", "B19001_008", "B19001_009", "B19001_010", "B19001_011"),
+    income_60_100 = str_c("B19001_0", c(12:13)),
+    income_100_150 = str_c("B19001_0", c(14:15)),
+    income_150_200 = "B19001_016",
+    income_200plus = "B19001_017")
+  income_labels = c(
+    "share_income_0_30" = "Less than $30,000",
+    "share_income_30_60" = "$30,000 – $59,999",
+    "share_income_60_100" = "$60,00 – $99,999",
+    "share_income_100_150" = "$100,000 – $149,999",
+    "share_income_150_200" = "$150,000 – $199,999",
+    "share_income_200plus" = "$200,000 or more")
+  income_bar_order = c(
+    "Less than $30,000", 
+    "$30,000 – $59,999", 
+    "$60,00 – $99,999", 
+    "$100,000 – $149,999", 
+    "$150,000 – $199,999", 
+    "$200,000 or more")
   
   ####----Age----####
   age_vars <- list(
@@ -83,33 +121,31 @@ plot_comparison_charts = function(df_boulevard, df_city, color) {
   
   ####----English Speaking Ability----####
   english_vars <- list(
-    very_well = c("B16004_005", "B16004_010", "B16004_015", "B16004_020", "B16004_027", "B16004_032", "B16004_037", "B16004_042", "B16004_049", "B16004_054", "B16004_059", "B16004_064"),
     well = c("B16004_006", "B16004_011", "B16004_016", "B16004_021", "B16004_028", "B16004_033", "B16004_038", "B16004_043", "B16004_050", "B16004_055", "B16004_060", "B16004_065"),
     not_well = c("B16004_007", "B16004_012", "B16004_017", "B16004_022", "B16004_029", "B16004_034", "B16004_039", "B16004_044", "B16004_051", "B16004_056", "B16004_061", "B16004_066"),
     none =c("B16004_008", "B16004_013", "B16004_018", "B16004_023", "B16004_030", "B16004_035", "B16004_040", "B16004_045", "B16004_052", "B16004_057", "B16004_062", "B16004_067"))
   english_labels <- c(
-    "share_very_well"  = "Very well",
     "share_well" = "Well",
     "share_not_well" = "Not well",
     "share_none" = "None")
-  english_bar_order <- c("Very well", "Well", "Not well", "None")
+  english_bar_order <- c("Well", "Not well", "None")
   
   ####----Primary Language----####
   #(we specifically care about the languages spoken for people who do not speak english well)
   #note that you may have to change which languages to display on the chart depending on which languages are most common in each study area
   language_vars <- list(
-    english_only = "C16001_002",
-    spanish= "C16001_005",
+    spanish = "C16001_005",
     korean = "C16001_020",
     chinese = "C16001_023",
     other = c("C16001_008", "C16001_011", "C16001_014", "C16001_017", "C16001_026", "C16001_029", "C16001_032", "C16001_035", "C16001_038"))
   language_labels <- c(
-    "share_english_only"  = "English only",
     "share_spanish" = "Spanish",
     "share_korean" = "Korean",
     "share_chinese" = "Chinese",
     "share_other" = "Other languages")
-  language_bar_order <- c("English only", "Spanish", "Korean", "Chinese", "Other languages")
+  language_bar_order <- c("Spanish", "Korean", "Chinese", "Other languages")
+  
+  english_less_than_very_well_denominator_vars = language_vars %>% unlist() %>% as.character()
   
   ####----Device/Internet Access----####
   device_vars <- list(
@@ -125,19 +161,19 @@ plot_comparison_charts = function(df_boulevard, df_city, color) {
   ####----Commuting Mode----####
   commute_mode_vars <- list(
     car_alone = "B08301_003",
-    pt = c("B08301_010", "B08301_011","B08301_012", "B08301_013", "B08301_014", "B08301_015"),
+    pt = "B08301_010",
     carpool = "B08301_004",
     wfh = "B08301_021",
     walk = "B08301_019",
     bike = "B08301_018")
   commute_mode_labels <- c(
     "share_car_alone"  = "Car, truck, or van",
-    "share_pt" = "Public transportation (excluding taxicab)",
+    "share_pt" = "Public transportation",
     "share_carpool" = "Carpool",
     "share_wfh" = "Work from home",
     "share_walk" = "Walk",
     "share_bike" = "Bicycle")
-  commute_mode_bar_order <- c("Car, truck, or van", "Work from home", "Public transportation (excluding taxicab)", "Carpool", "Walk", "Bicycle")
+  commute_mode_bar_order <- c("Car, truck, or van", "Work from home", "Public transportation", "Carpool", "Walk", "Bicycle")
   
   ####----Commute Time----####
   commute_time_vars <- list(
@@ -172,11 +208,11 @@ plot_comparison_charts = function(df_boulevard, df_city, color) {
   ####----Employment----####
   #difficult bc the denominators differ for computing different bars ((un)employment 
   #uses labor force, not in labor force uses total population)
-  employment_bins <- list(
-    total_pop = "B23001_001",
-    labor_force = c("B23001_006", "B23001_013", "B23001_020", "B23001_027", "B23001_034", "B23001_041", "B23001_048", "B23001_055", "B23001_062", "B23001_069",
-                    "B23001_074", "B23001_079", "B23001_084", "B23001_092", "B23001_099", "B23001_106", "B23001_113", "B23001_120", "B23001_127", "B23001_134",
-                    "B23001_141", "B23001_148", "B23001_155", "B23001_160", "B23001_165", "B23001_170"),
+  employment_vars <- list(
+    # total_pop = "B23001_001",
+    # labor_force = c("B23001_006", "B23001_013", "B23001_020", "B23001_027", "B23001_034", "B23001_041", "B23001_048", "B23001_055", "B23001_062", "B23001_069",
+    #                 "B23001_074", "B23001_079", "B23001_084", "B23001_092", "B23001_099", "B23001_106", "B23001_113", "B23001_120", "B23001_127", "B23001_134",
+    #                 "B23001_141", "B23001_148", "B23001_155", "B23001_160", "B23001_165", "B23001_170"),
     employed = c("B23001_007", "B23001_014", "B23001_021", "B23001_028", "B23001_035", "B23001_042", "B23001_049", "B23001_056", "B23001_063", "B23001_070",
                  "B23001_075", "B23001_080", "B23001_085", "B23001_093", "B23001_100", "B23001_107", "B23001_114", "B23001_121", "B23001_128", "B23001_135",
                  "B23001_142", "B23001_149", "B23001_156", "B23001_161", "B23001_166", "B23001_171"),
@@ -186,27 +222,35 @@ plot_comparison_charts = function(df_boulevard, df_city, color) {
     not_in_labor_force =  c("B23001_009", "B23001_016", "B23001_023", "B23001_030", "B23001_037", "B23001_044", "B23001_051", "B23001_058", "B23001_065", "B23001_072",
                             "B23001_077", "B23001_082", "B23001_087", "B23001_095", "B23001_102", "B23001_109", "B23001_116", "B23001_123", "B23001_130", "B23001_137",
                             "B23001_144", "B23001_151", "B23001_158", "B23001_163", "B23001_168", "B23001_173"))
+  employment_labels = c(
+    "share_employed" = "Employed",
+    "share_unemployed" = "Unemployed",
+    "share_not_in_labor_force" = "Not in labor force")
+  employment_bar_order = c("Employed", "Unemployed", "Not in labor force")
   
-  ####----Plotting Standard Variables----####
-  constructs = c(
-    "age", "gender", "ethnicity", "family", "english", "language", "device", 
-    "commute_mode", "commute_time", "tenure")
-  
+  ####----Plotting Variables Iteratively----####
   plot_metadata = tibble(
     var_list = str_c(constructs, "_vars"),
-    total_var = c("B01001_001", "B03002_001", "B01001_001", "B11003_001", "B16004_001", 
-                  "C16001_001", "B28001_001", "B08301_001", "B08303_001", "B25003_001"),
+    total_var = denominators,
     labels = str_c(constructs, "_labels"),
-    group_order = str_c(constructs, "_bar_order"))
+    group_order = str_c(constructs, "_bar_order"),
+    constructs = constructs)
   
   ## this iterates over each row in `plot_metadata` and applies each of the columns 
   ## from `plot_metadata` as arguments to the parameter of the same name in `map_variable()`
   results = pmap(
     plot_metadata,
     plot_indicator,
-    df_boulevard = df_boulevard,
-    df_city = df_city)
-  
+    df_boulevard = df_boulevard %>%
+      st_drop_geometry() %>%
+      mutate(english_less_than_very_well_denominator = rowSums(select(., all_of(english_less_than_very_well_denominator_vars)), na.rm = TRUE)),
+    df_city = df_city %>%
+      st_drop_geometry() %>%
+      mutate(english_less_than_very_well_denominator = rowSums(select(., all_of(english_less_than_very_well_denominator_vars)), na.rm = TRUE)),
+    save = save,
+    file_extension = file_extension,
+    outpath = outpath)
+
   names(results) = constructs
   
   return(results)
