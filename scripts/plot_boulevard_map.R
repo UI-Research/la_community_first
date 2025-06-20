@@ -171,6 +171,7 @@ plot_boulevard_map = function(
         str_c(legend_title %>% janitor::make_clean_names(), file_extension)),
       width = width,
       height = height,
+      dpi = 1000,
       units = "in")
   }
   

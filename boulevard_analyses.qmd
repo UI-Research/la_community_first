@@ -35,46 +35,50 @@ boulevard_tracts = file.path(file_path, boulevard, "maps", str_c(boulevard, "_bu
 ```
 
 Obtaining ACS data
-
 ```{r}
 acs_data_la = get_acs_data(
-  file_path = file_path, 
-  area = "LA")
+    file_path = file_path, 
+    area = "LA") %>%
+  mutate(
+    area_sqmi = st_area(.) %>% units::set_units("mi^2") %>% as.numeric,
+    population_density_sqmi = B01001_001 / area_sqmi)
+
 acs_data_boulevard = acs_data_la %>%
   filter(GEOID %in% boulevard_tracts$GEOID)
 ```
 
-Plotting comparison charts (Teddy)
+Plotting comparison charts 
+```{r, fig.width = 6.5, fig.height = 2.5}
+color_palette = c(
+  "LA City" = "#00447c",
+  "Pico" = "#A7c539")
 
-This includes the following figures:
+plot_metadata = tribble(
+  ~constructs, ~denominators,
+  "income", "B19001_001",
+  # "employment", "B23001_001",
+  # "age", "B01001_001",
+  # "ethnicity", "B03002_001",
+  # "family", "B11003_001",
+  # "english", "B16004_001",
+  # "language", "english_less_than_very_well_denominator",
+  # "device", "B28001_001",
+  # "commute_mode", "B08301_001",
+  # "commute_time", "B08303_001",
+  # "tenure", "B25003_001"
+  )
 
--   Figure 3 (age distribution)
-
--   Figure 4 (ethnicity)
-
--   Figure 7 (employment status – partly complete)
-
--   Figure 8 (gender)
-
--   Figure 9 (household structure)
-
--   Figure 10 (speak english well)
-
--   Figure 11 (other languages)
-
--   Figure 20 (Internet and device access)
-
--   Figure 21 (housing tenure)
-
--   Figure 29 (commute mode)
-
--   Figure 30 (commute time)
-
-```{r}
 comparison_charts = plot_comparison_charts(
   df_boulevard = acs_data_boulevard, 
   df_city = acs_data_la,
-  color = color_palette)
+  color = color_palette,
+  constructs = plot_metadata$constructs,
+  denominators = plot_metadata$denominators,
+  save = TRUE,
+  outpath = file.path(file_path, "Pico", "Outputs"),
+  file_extension = ".png")
+
+acs_variables %>% View()
 
 comparison_charts
 ```
