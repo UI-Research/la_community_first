@@ -235,7 +235,6 @@ plot_comparison_charts = function(
     "share_employed" = "Employed",
     "share_unemployed" = "Unemployed",
     "share_not_in_labor_force" = "Not in labor force")
-  employment_bar_order = c("Employed", "Unemployed", "Not in labor force")
   
   ####----Plotting Variables Iteratively----####
   plot_metadata = tibble(
