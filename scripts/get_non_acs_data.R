@@ -13,7 +13,12 @@ get_non_acs_data = function(
     base_path,
     dataset_name = c("affordable_housing", "senior_housing", "zoning", "h_and_t", "crash", "hla"),
     area = c("LA", "Pico", "MLK", "Hoover")) {
-
+  
+  ## used for filtering crash data
+  primary_road_string = "PICO"
+  if (area == "MLK") primary_road_string = "MARTIN LUTHER|MLK"
+  if (area == "Hoover") primary_road_string = "HOOVER"
+  
   if (area == "LA") file_path = file.path(base_path, "Data", "LA tracts", "LA_City_2020_Census_Tracts_.shp")
   if (area != "LA") file_path = file.path(base_path, "Data", "Mapping", "Boulevards", area, str_c(area, "_buffer_tracts.shp"))
 
@@ -43,8 +48,16 @@ get_non_acs_data = function(
         layer = area, 
         quiet = TRUE) %>%
         st_transform(4326) %>%
-        st_make_valid() 
-      
+        st_make_valid() %>%
+        mutate(
+          zoning_category = factor(zoning_category, levels = c(
+            "Agricultural or Open Space",
+            "Highways or Parking",
+            "Commercial or Industrial",
+            "Multi-family Residential",
+            "Single-family Residential",
+            "Public")))
+
     } else {
       
       result1 <- st_read(file.path(base_path, "Data/Zoning/Zoning.shp")) %>%
@@ -108,37 +121,49 @@ get_non_acs_data = function(
             include.lowest = TRUE,
             ordered_result = TRUE)) %>%
       select(GEOID, matches("bin"), everything()) }
-  
+
   if (dataset_name == "crash") {
-    result <- read_csv(file.path(base_path, "Pico/Outputs/crash_data_pico_blvd.csv")) %>%
-     st_as_sf(
+    result <- read_csv(file.path(base_path, "Data/la_ksi_crashes.csv")) %>%
+      filter(!is.na(POINT_X), !is.na(POINT_Y)) %>%
+      st_as_sf(
        coords = c("POINT_X", "POINT_Y"),
        crs = 4326,
        remove = FALSE) %>%
       st_transform(4326) %>%
       st_make_valid() %>%
       st_filter(tracts_sf) %>%
-      select(
-        id = CASE_ID,
-        pedestrian_crash = PEDESTRIAN_ACCIDENT,
-        bike_crash = BICYCLE_ACCIDENT) %>%
-      mutate(
-        pedestrian_involved_crash = if_else(is.na(pedestrian_crash) | pedestrian_crash == "", "N", as.character(pedestrian_crash)),
-        bicyclist_invovled_crash = if_else(is.na(bike_crash) | bike_crash == "", "N", as.character(bike_crash)),
-        other_crash_types = if_else(pedestrian_crash != "Y" & bike_crash != "Y", "Y", "N")) %>%
-      pivot_longer(
-        cols = matches("crash"), 
-        names_to = "crash_type", 
-        values_to = "crash_flag") %>%
-      filter(crash_flag == "Y")%>%
-      mutate(
-        crash_type = crash_type %>% str_replace_all("_", " ") %>% str_to_sentence()) }
-  
+      janitor::clean_names() %>%
+      filter(
+        ## only crashes on the primary street
+        str_detect(primary_rd, primary_road_string),
+        ## only crashes that aren't on a state highway
+        state_hwy_ind == "N") %>%
+      transmute(
+        id = case_id, 
+        pedestrian_involved_crash = pedestrian_accident,
+        bicyclist_invovled_crash = bicycle_accident,
+        other_vehicle_crash = if_else(
+          is.na(pedestrian_involved_crash) & is.na(bicyclist_invovled_crash), "Y", NA)) %>%
+      pivot_longer(matches("crash")) %>%
+      filter(value == "Y") %>%
+      transmute(
+        id,
+        crash_type = name %>% str_replace_all(c("_" = " ")) %>% str_to_sentence(),
+        crash_type = factor(crash_type, levels = c(
+          "Pedestrian involved crash",
+          "Bicyclist invovled crash",
+          "Other vehicle crash"))) 
+    }
+
   if (dataset_name == "hla") {
     result = st_read(file.path(base_path, "Data/Measure HLA Vote/HLA.shp")) %>%
-      st_make_valid(hla_vote) %>%
+      st_make_valid() %>%
       st_transform(crs = 4326) %>%
-      st_filter(tracts_sf) }
+      st_filter(tracts_sf) %>%
+      transmute(
+        hla_total_vote_count = V3_LOS_A_4,
+        hla_affirmative_vote_count = V3_LOS_A_2,
+        hla_affirmative_vote_share = V3_LOS_A_5) }
   
   return(result)
 }

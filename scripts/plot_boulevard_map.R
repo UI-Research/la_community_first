@@ -40,117 +40,127 @@ plot_boulevard_map = function(
     file_extension,
     outpath,
     height = 4.5,
-    width = 6.5,
+    width = 6.88, ## the document is unusually wide, so we use a wider map
+    projection = 2227,
+    tracts_sf = sf,
     ...) {
-  ## for testing
-  # sf = acs_data_boulevard
-  # fill_column = "B01001_001"
-  # style = "cont"
-  # map_type = "choropleth"
-  # n = 4
-  # tmap_mode("plot")
-  # legend_title = "Population"
+  
+  sf = sf %>% st_transform(projection)
+  boulevard_sf = boulevard_sf %>% st_transform(projection)
+  locations_sf = locations_sf %>% st_transform(projection)
+  study_area_outline_sf = study_area_outline_sf %>% st_transform(projection)
+  streets_sf = streets_sf %>% st_transform(projection)
+  tracts_sf = tracts_sf %>% st_transform(projection)
+  
+  ## most legend aesthetics specified in `tm_layout()` below
+  legend = tm_legend(
+    title = legend_title %>% str_wrap(width = 25), 
+    frame = FALSE,
+    item.space = .7,
+    item.height = .7,
+    title.size = .7,
+    title.padding = c(.25, .25, .25, .25))
+  
+  label_type = scales::percent
+  if (!str_detect(fill_column, "share|B25071_001|t_ami")) label_type = scales::comma
+  if (str_detect(fill_column, "B19013")) label_type = scales::dollar
   
   if (map_type == "choropleth") {
     
     ## set the scale depending on the type of input data
     scale = tm_scale_intervals(
-      n = 3,
-      as.count = TRUE,
+      n = 4,
       style = "pretty",
       values = palette_colors,
-      label.format = list(fun = function(x) scales::comma_format()(x)))
+      label.format = label_type)
     
     if (style == "cat") {
-      scale = tm_scale_ordinal(
-        n = 4,
+      
+      scale = tm_scale_categorical(
         values = palette_colors,
-        label.format = list(fun = function(x) scales::comma_format()(x))) }
+        label.format = list(fun = function(x) scales::comma_format()(x))) 
+      ?tm_scale_categorical
+      map1 = 
+        tm_shape(tracts_sf, bbox = st_bbox(tracts_sf %>% st_buffer(850)), is.main = TRUE) +
+        tm_shape(sf) +
+        tm_polygons(
+          fill = fill_column,
+          fill_alpha = .5,
+          fill.scale = scale,
+          fill.legend = legend,
+          col = border_color) 
+      } else {
     
     map1 = 
-      tm_shape(sf, bbox = st_bbox(sf %>% st_buffer(250))) +
+      tm_shape(sf, bbox = st_bbox(sf %>% st_buffer(850)), unit = "mi") +
       tm_polygons(
         fill = fill_column,
-        fill_alpha = .7,
+        fill_alpha = if_else(style == "cat", .5, .7),
         fill.scale = scale,
-        ## most legend aesthetics specified in `tm_layout()` below
-        fill.legend = tm_legend(
-          title = legend_title, 
-          frame = FALSE,
-          item.space = .75),
-        col = border_color) 
+        fill.legend = legend,
+        col = border_color) }
   }
     
   if (map_type == "point") {
     map1 = 
-      tm_shape(sf, bbox = st_bbox(sf %>% st_buffer(1000))) +
+      tm_shape(tracts_sf, bbox = st_bbox(tracts_sf %>% st_buffer(850)), is.main = TRUE) +
+      tm_shape(sf) +
       tm_dots(
-        #palette = palette_colors,
-        col = fill_column,
-        col_alpha = 0.7,
-        # style = "cat",
-        # border.col = border_color,
-        # border.lwd = 0.3,
+        fill.scale = tm_scale_categorical(values = palette_colors),
+        fill = fill_column,
+        fill_alpha = 0.55,
         size = 0.5,
-        col.legend = tm_legend(
-          title = legend_title, 
-          frame = FALSE,
-          item.space = .75)
-      )
-  
+        fill.legend = legend)
     }
 
-  
-  
   ## points of interest
   map2 = 
     ## study area outline
-    tm_shape(boulevard_sf %>% st_buffer(804.672), unit = "mi") +
+    tm_shape(boulevard_sf %>% st_buffer(2640), unit = "mi") +
       tm_borders(col = "#9e400f", lwd = 2, lty = "dashed") +
     ## the boulevard
     tm_shape(boulevard_sf) +
       tm_lines(col = "#F4AB0B", lwd = 4) +
     tm_shape(
       locations_sf %>% mutate(name = str_wrap(name, 18))) +
-    tm_dots(
-      col = "black",
-      size = 0.4) +
-    tm_text(
-      "name",
-      size = 0.6,
-      col = "black",
-      options = opt_tm_text(just = "center"),
-      ymod = 1.5,
-      fontface = "bold",
-      fontfamily = "Calibri") +
+      tm_dots(
+        col = "black",
+        size = 0.4) +
+      tm_text(
+        "name",
+        size = 0.6,
+        col = "black",
+        options = opt_tm_text(just = "center"),
+        ymod = 1.5,
+        fontface = "bold",
+        fontfamily = "Calibri") +
     tm_shape(streets_sf) +
-    tm_text(
-      "name",
-      size = 0.6,
-      col = "black",
-      angle = "orientation",
-      options = opt_tm_text(just = "center"),
-      fontface = "bold",
-      fontfamily = "Calibri") +
+      tm_text(
+        "name",
+        size = 0.6,
+        col = "black",
+        angle = "orientation",
+        options = opt_tm_text(just = "center"),
+        fontface = "bold",
+        fontfamily = "Calibri") +
     ## a compass
     tm_compass(
       type = "arrow", 
       size = 1,
       #group_id = "bottom_right",
-      position = c(.72, .12)
-      ) +
+      position = c(.72, .12)) +
     ## a scalebar
     tm_scalebar(
-      breaks = c(0, 1, 2),
+      breaks = c(0, .5, 1),
       #group_id = "bottom_right",
       position = c(.75, .1),
       text.size = .7) +
     ## the legend
     tm_layout(
-      legend.position = tm_pos_in("left", "bottom"),
+      legend.position = tm_pos_on_top("left", "bottom"),
       frame = FALSE,
       legend.frame = FALSE,
-      legend.width = 8,
+      #legend.width = 8,
       legend.bg.color = "white",    
       legend.bg.alpha = 0.9,
       legend.title.size = .8,        
@@ -158,10 +168,12 @@ plot_boulevard_map = function(
       legend.text.color = "black",   
       legend.title.fontface = "bold") +
     ## the basemap
-    tm_basemap("Esri.WorldGrayCanvas") #+
-    #tm_comp_group("bottom_right", position = tm_pos_on_top("right", "BOTTOM"), stack = "horizontal")
-  
-  map = map1 + map2
+    tm_basemap("Esri.WorldGrayCanvas")
+
+  if (map_type == "point") {
+    map = map2 + map1 } else {
+    map = map1 + map2
+  }
   
   if (save == TRUE) {
     tmap_save(
@@ -174,6 +186,6 @@ plot_boulevard_map = function(
       dpi = 1000,
       units = "in")
   }
-  
+
   return(map)
 }
