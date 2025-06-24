@@ -3,7 +3,9 @@ library(urbnthemes)
 
 ## Function to compute group shares
 compute_shares <- function(df, var_list, total_var) {
+
   total_population <- sum(df[[total_var]], na.rm = TRUE)
+  
   
   #this is to make sure we're not dividing by zero
   if (is.na(total_population) || total_population == 0) {
@@ -57,7 +59,7 @@ plot_comparison <- function(
   
   df %>%
     ggplot(
-      aes(x = .data[[x_var]], y = .data[[y_var]], fill = .data[[fill_var]])) +
+      aes(x = .data[[x_var]], y = .data[[y_var]], fill = fct_rev(.data[[fill_var]]))) +
     geom_col(position = position_dodge(width = 0.8), width = 0.7) +
     geom_text(
       aes(label = .data[[label_var]]),
@@ -95,14 +97,14 @@ plot_indicator <- function(
     file_extension = file_extension,
     outpath = outpath,
     ...) {
-
+  
   var_list = get(var_list, envir = sys.frames()[[1]])
   labels = get(labels, envir = sys.frames()[[1]])
   group_order = get(group_order, envir = sys.frames()[[1]])
   
-  pico <- compute_shares(df_boulevard, var_list, total_var)
   la <- compute_shares(df_city, var_list, total_var)
-  
+  pico <- compute_shares(df_boulevard, var_list, total_var)
+ 
   pico_long <- prepare_long_data(pico, "Pico", labels)
   la_long   <- prepare_long_data(la, "LA City", labels)
   

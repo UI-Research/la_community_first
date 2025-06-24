@@ -214,6 +214,15 @@ plot_comparison_charts = function(
     "share_severe_rent_burden" = "Severely rent burdened")
   rent_burden_bar_order <- c("Rent burdened", "Severely rent burdened")
   
+  rent_burden_denominator_vars <- c("B25070_001", "B25070_011")
+  
+  ####----Adult population in school----####
+  school_vars <- list(
+    in_school = c("B14007_015", "B14007_016", "B14007_017", "B14007_018"))
+  school_labels <- c(
+    "share_in_school"  = "Enrolled in school")
+  school_bar_order <- c("Enrolled in school")
+  
   ####----Employment----####
   #difficult bc the denominators differ for computing different bars ((un)employment 
   #uses labor force, not in labor force uses total population)
@@ -236,13 +245,15 @@ plot_comparison_charts = function(
     "share_unemployed" = "Unemployed",
     "share_not_in_labor_force" = "Not in labor force")
   
+  employment_bar_order <- c("Employed", "Unemployed", "Not in labor force")
+  
   ####----Plotting Variables Iteratively----####
   plot_metadata = tibble(
     var_list = str_c(constructs, "_vars"),
     total_var = denominators,
     labels = str_c(constructs, "_labels"),
     group_order = str_c(constructs, "_bar_order"),
-    constructs = constructs)
+    constructs = constructs) 
   
   ## this iterates over each row in `plot_metadata` and applies each of the columns 
   ## from `plot_metadata` as arguments to the parameter of the same name in `map_variable()`
@@ -251,10 +262,12 @@ plot_comparison_charts = function(
     plot_indicator,
     df_boulevard = df_boulevard %>%
       st_drop_geometry() %>%
-      mutate(english_less_than_very_well_denominator = rowSums(select(., all_of(english_less_than_very_well_denominator_vars)), na.rm = TRUE)),
+      mutate(english_less_than_very_well_denominator = rowSums(select(., all_of(english_less_than_very_well_denominator_vars)), na.rm = TRUE),
+             rent_burden_denominator = .data[[rent_burden_denominator_vars[1]]] - .data[[rent_burden_denominator_vars[2]]]),
     df_city = df_city %>%
       st_drop_geometry() %>%
-      mutate(english_less_than_very_well_denominator = rowSums(select(., all_of(english_less_than_very_well_denominator_vars)), na.rm = TRUE)),
+      mutate(english_less_than_very_well_denominator = rowSums(select(., all_of(english_less_than_very_well_denominator_vars)), na.rm = TRUE),
+             rent_burden_denominator = .[[rent_burden_denominator_vars[1]]] - .[[rent_burden_denominator_vars[2]]]),
     save = save,
     file_extension = file_extension,
     outpath = outpath)

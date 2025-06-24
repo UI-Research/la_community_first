@@ -36,7 +36,7 @@ acs_tracts_la = get_acs_data(
     area = "LA",
     census_geography = "tract")
 
-acs_tracts_boulevard = acs_data_la %>%
+acs_tracts_boulevard = acs_tracts_la %>%
   filter(GEOID %in% boulevard_tracts$GEOID)
 
 acs_city_la = get_acs_data(
@@ -64,7 +64,8 @@ plot_metadata = tribble(
   "commute_mode", "B08301_001",
   "commute_time", "B08303_001",
   "tenure", "B25003_001",
-  "rent_burden", "B25070_001"
+  "rent_burden", "rent_burden_denominator",
+  "school", "B14007_001"
   )
 
 comparison_charts = plot_comparison_charts(
@@ -164,7 +165,7 @@ plot_metadata = tribble(
 )
 
 plot_acs_maps(
-  sf = acs_data_boulevard,
+  sf = acs_tracts_boulevard,
   boulevard_sf = boulevard_corridor,
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
@@ -172,7 +173,7 @@ plot_acs_maps(
   fill_column = plot_metadata$fill_column,
   legend_title = plot_metadata$legend_title,
   save = TRUE,
-  outpath = file.path(file_path, area, "Outputs"),
+  outpath = file.path(file_path, boulevard, "Outputs"),
   file_extension = ".png")
 ```
 
@@ -181,7 +182,8 @@ Non-ACS data
 affordable_housing_sf = get_non_acs_data(
   base_path = file_path,
   dataset_name = "affordable_housing",
-  area = boulevard)
+  area = boulevard) %>%
+  st_transform(projection)
 
 senior_housing_sf = get_non_acs_data(
   base_path = file_path,
@@ -224,8 +226,8 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
+  projection = 2227,
   legend_title = "Affordable Housing",
-  palette_colors = color_palette,
   style = "cont",
   map_type = "point",
   save = TRUE,
@@ -242,7 +244,6 @@ plot_boulevard_map(
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
   legend_title = "Senior Housing",
-  palette_colors = color_palette,
   style = "cont",
   map_type = "point",
   save = TRUE,
@@ -301,12 +302,15 @@ plot_boulevard_map(
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
   legend_title = "HLA Supporting",
+  bins = 2,
   map_type = "choropleth",
   border_color = NA,
   style = "cont",
   save = TRUE,
   file_extension = ".png",
   outpath = file.path(file_path, boulevard, "Outputs"))
+
+ 
 
 ## housing and transportation affordability index (h+t)
 ## (but actually we're just plotting transportation costs)
@@ -350,3 +354,65 @@ acs_data_boulevard %>%
   arrange(desc(estimate)) %>%
   mutate(share = round((estimate / estimate[country == "Table universe"]) * 100, digits = 0))
 ```
+
+
+
+
+```{r disability counts}
+
+disability_counts <- acs_tracts_boulevard |>
+  st_drop_geometry() |>
+  select(B18101_004, B18101_007, B18101_010, B18101_013, B18101_016, B18101_019, B18101_023, B18101_026, B18101_029, B18101_032, B18101_035, B18101_038,
+         B18102_004, B18102_007, B18102_010, B18102_013, B18102_016, B18102_019, B18102_023, B18102_026, B18102_029, B18102_032, B18102_035, B18102_038,
+         B18103_004, B18103_007, B18103_010, B18103_013, B18103_016, B18103_019, B18103_023, B18103_026, B18103_029, B18103_032, B18103_035, B18103_038,
+         B18104_004, B18104_007, B18104_010, B18104_013, B18104_016, B18104_020, B18104_023, B18104_026, B18104_029, B18104_032,
+         B18105_004, B18105_007, B18105_010, B18105_013, B18105_016, B18105_020, B18105_023, B18105_026, B18105_029, B18105_032,
+         B18106_004, B18106_007, B18106_010, B18106_013, B18106_016, B18106_020, B18106_023, B18106_026, B18106_029, B18106_032,
+         B18107_004, B18107_007, B18107_010, B18107_013, B18107_017, B18107_020, B18107_023, B18107_026,
+         ) |>
+  mutate(disability = rowSums(across(starts_with("B18101"))),
+         hearing_difficulty = rowSums(across(starts_with("B18102"))),
+         vision_difficulty = rowSums(across(starts_with("B18103"))),
+         cognitive_difficulty = rowSums(across(starts_with("B18104"))),
+         ambulatory_difficulty = rowSums(across(starts_with("B18105"))),
+         self_care_difficulty = rowSums(across(starts_with("B18106"))),
+         independent_living_difficulty = rowSums(across(starts_with("B18107"))),
+         ) |>
+  select(ends_with(c("_difficulty", "disability"))) |>
+  summarise(across(everything(), sum, na.rm = TRUE)) |>
+  gather(key = "Disability", value = "Count")
+
+
+
+
+ disability_plot <- ggplot(disability_counts, aes(x = Disability, y = Count, fill = Disability)) +
+  geom_col() +
+  geom_text(
+      aes(label = scales::comma(Count)),
+      position = position_dodge(width = 0.8),
+      vjust = -.5,
+      color = "black",
+      size = 8,
+      size.unit = "pt") +
+    scale_fill_manual(values = c("#00447C", "#A7C539", "#F2B705", "#780032", "#e66a8c","#D9D9D9"), ) +
+    scale_x_discrete(labels = c("Ambulatory", "Cognitive", "Hearing", "Independent Living", "Self Care", "Vision")) +
+    scale_y_continuous(label = scales::comma) +
+    theme_urbn_print() +
+    labs(x = "", y = "") +
+    theme(
+      legend.position = "none",
+      panel.grid.major.x = element_blank(),
+      text = element_text(family = "Arial", color = "black"))
+
+ggsave(filename = "disability_counts.png", 
+       plot = disability_plot, 
+       path = file.path(file_path, boulevard, "Outputs"),
+       height = 3.2,
+       width = 6.84,
+       dpi = 1000)
+
+
+```
+
+
+

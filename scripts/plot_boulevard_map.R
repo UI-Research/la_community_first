@@ -14,6 +14,7 @@ library(tmap)
 #' @param palette_colors A vector of colors to be used for the choropleth fill. Defaults to a blue palette.
 #' @param legend_title The title for the legend in the map.
 #' @param style The style of the map, either "cat" for categorical or "cont" for continuous. Defaults to "cat".
+#' @param bins the number of bins to split the scale into
 #' @param map_type The type of map to create, one of c("choropleth", "point").
 #' @param save A logical indicating whether to save the map to file. If `TRUE`, the map will be saved using the specified `file_extension`.
 #' @param file_extension The file extension to use when saving the map, e.g., ".png", ".svg". Defaults to ".png".
@@ -36,6 +37,7 @@ plot_boulevard_map = function(
     style = "cat",
     map_type = c("choropleth", "point"),
     border_color = "white",
+    bins = 4,
     save,
     file_extension,
     outpath,
@@ -44,6 +46,7 @@ plot_boulevard_map = function(
     projection = 2227,
     tracts_sf = sf,
     ...) {
+  
   
   sf = sf %>% st_transform(projection)
   boulevard_sf = boulevard_sf %>% st_transform(projection)
@@ -69,7 +72,7 @@ plot_boulevard_map = function(
     
     ## set the scale depending on the type of input data
     scale = tm_scale_intervals(
-      n = 4,
+      n = bins,
       style = "pretty",
       values = palette_colors,
       label.format = label_type)
@@ -79,9 +82,9 @@ plot_boulevard_map = function(
       scale = tm_scale_categorical(
         values = palette_colors,
         label.format = list(fun = function(x) scales::comma_format()(x))) 
-      ?tm_scale_categorical
+
       map1 = 
-        tm_shape(tracts_sf, bbox = st_bbox(tracts_sf %>% st_buffer(850)), is.main = TRUE) +
+        tm_shape(tracts_sf, bbox = st_bbox(tracts_sf %>% st_buffer(850)), is.main = TRUE, unit = "mi") +
         tm_shape(sf) +
         tm_polygons(
           fill = fill_column,
@@ -103,7 +106,7 @@ plot_boulevard_map = function(
     
   if (map_type == "point") {
     map1 = 
-      tm_shape(tracts_sf, bbox = st_bbox(tracts_sf %>% st_buffer(850)), is.main = TRUE) +
+      tm_shape(tracts_sf, bbox = st_bbox(tracts_sf %>% st_buffer(850)), is.main = TRUE, unit = "mi") +
       tm_shape(sf) +
       tm_dots(
         fill.scale = tm_scale_categorical(values = palette_colors),
@@ -121,6 +124,21 @@ plot_boulevard_map = function(
     ## the boulevard
     tm_shape(boulevard_sf) +
       tm_lines(col = "#F4AB0B", lwd = 4) +
+    tm_add_legend(
+      type = "lines",
+      col = c("#F4AB0B", "#9e400f"),
+      lty = c("solid", "dashed"),
+      lwd = c(2, 2),
+      labels = c("Project Site", "Study Area"),
+      frame.lwd = 0,
+      position = tm_pos_on_top("left", "top"),
+      bg.color = "white",    
+      bg.alpha = 0.9,
+      title.size = .8,        
+      title.color = "black",  
+      text.color = "black",   
+      title.fontface = "bold"
+    ) +
     tm_shape(
       locations_sf %>% mutate(name = str_wrap(name, 18))) +
       tm_dots(
