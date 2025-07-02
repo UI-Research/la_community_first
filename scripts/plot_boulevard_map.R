@@ -129,13 +129,13 @@ plot_boulevard_map = function(
         fill = fill_column,
         fill_alpha = 0.55,
         size = 0.5,
-        fill.legend = legend)
+        fill.legend = legend) 
     }
 
   ## points of interest
   map2 = 
     ## study area outline
-    tm_shape(boulevard_sf %>% st_buffer(2640), bbox = bbox, unit = "mi") +
+    tm_shape(boulevard_sf %>% st_buffer(2640), unit = "mi") +
       tm_borders(col = "#9e400f", lwd = 2, lty = "dashed") +
     ## the boulevard
     tm_shape(boulevard_sf, bbox = bbox) +
