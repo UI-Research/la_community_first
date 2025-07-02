@@ -16,6 +16,8 @@ library(tmap)
 #' @param style The style of the map, either "cat" for categorical or "cont" for continuous. Defaults to "cat".
 #' @param bins the number of bins to split the scale into
 #' @param map_type The type of map to create, one of c("choropleth", "point").
+#' @param xpad horizontal buffer for map bounding box
+#' @param ypad vertical buffer for map bounding box
 #' @param save A logical indicating whether to save the map to file. If `TRUE`, the map will be saved using the specified `file_extension`.
 #' @param file_extension The file extension to use when saving the map, e.g., ".png", ".svg". Defaults to ".png".
 #' @param outpath The path where the map will be saved.
@@ -41,9 +43,11 @@ plot_boulevard_map = function(
     save,
     file_extension,
     outpath,
-    height = 4.5,
-    width = 6.88, ## the document is unusually wide, so we use a wider map
-    projection = 2227,
+    xpad,
+    ypad,
+    height,
+    width, ## the document is unusually wide, so we use a wider map
+    projection = 2229,
     tracts_sf = sf,
     ...) {
   
@@ -63,6 +67,18 @@ plot_boulevard_map = function(
     item.height = .7,
     title.size = .7,
     title.padding = c(.25, .25, .25, .25))
+  
+  ## setting up bounding box for map
+  bbox <- st_bbox(tracts_sf %>% st_buffer(1000))
+  ## Add padding to x or y direction
+  bbox["xmin"] <- bbox["xmin"] - xpad
+  bbox["xmax"] <- bbox["xmax"] + xpad
+  
+  bbox["ymin"] <- bbox["ymin"] - ypad
+  bbox["ymax"] <- bbox["ymax"] + ypad
+  
+
+  
   
   label_type = scales::percent
   if (!str_detect(fill_column, "share|B25071_001|t_ami")) label_type = scales::comma
@@ -84,8 +100,8 @@ plot_boulevard_map = function(
         label.format = list(fun = function(x) scales::comma_format()(x))) 
 
       map1 = 
-        tm_shape(tracts_sf, bbox = st_bbox(tracts_sf %>% st_buffer(850)), is.main = TRUE, unit = "mi") +
-        tm_shape(sf) +
+        tm_shape(tracts_sf, bbox = bbox, is.main = TRUE, unit = "mi") +
+        tm_shape(sf, bbox = bbox) +
         tm_polygons(
           fill = fill_column,
           fill_alpha = .5,
@@ -95,7 +111,7 @@ plot_boulevard_map = function(
       } else {
     
     map1 = 
-      tm_shape(sf, bbox = st_bbox(sf %>% st_buffer(850)), unit = "mi") +
+      tm_shape(sf, bbox = bbox, unit = "mi") +
       tm_polygons(
         fill = fill_column,
         fill_alpha = if_else(style == "cat", .5, .7),
@@ -106,8 +122,8 @@ plot_boulevard_map = function(
     
   if (map_type == "point") {
     map1 = 
-      tm_shape(tracts_sf, bbox = st_bbox(tracts_sf %>% st_buffer(850)), is.main = TRUE, unit = "mi") +
-      tm_shape(sf) +
+      tm_shape(tracts_sf, bbox = bbox, is.main = TRUE, unit = "mi") +
+      tm_shape(sf, bbox = bbox) +
       tm_dots(
         fill.scale = tm_scale_categorical(values = palette_colors),
         fill = fill_column,
@@ -119,10 +135,10 @@ plot_boulevard_map = function(
   ## points of interest
   map2 = 
     ## study area outline
-    tm_shape(boulevard_sf %>% st_buffer(2640), unit = "mi") +
+    tm_shape(boulevard_sf %>% st_buffer(2640), bbox = bbox, unit = "mi") +
       tm_borders(col = "#9e400f", lwd = 2, lty = "dashed") +
     ## the boulevard
-    tm_shape(boulevard_sf) +
+    tm_shape(boulevard_sf, bbox = bbox) +
       tm_lines(col = "#F4AB0B", lwd = 4) +
     tm_add_legend(
       type = "lines",
@@ -140,7 +156,7 @@ plot_boulevard_map = function(
       title.fontface = "bold"
     ) +
     tm_shape(
-      locations_sf %>% mutate(name = str_wrap(name, 18))) +
+      locations_sf %>% mutate(name = str_wrap(name, 18)), bbox = bbox) +
       tm_dots(
         col = "black",
         size = 0.4) +
@@ -152,7 +168,7 @@ plot_boulevard_map = function(
         ymod = 1.5,
         fontface = "bold",
         fontfamily = "Calibri") +
-    tm_shape(streets_sf) +
+    tm_shape(streets_sf, bbox = bbox) +
       tm_text(
         "name",
         size = 0.6,
@@ -166,12 +182,12 @@ plot_boulevard_map = function(
       type = "arrow", 
       size = 1,
       #group_id = "bottom_right",
-      position = c(.72, .12)) +
+      position = c(.72, .06)) +
     ## a scalebar
     tm_scalebar(
       breaks = c(0, .5, 1),
       #group_id = "bottom_right",
-      position = c(.75, .1),
+      position = c(.74, .05),
       text.size = .7) +
     ## the legend
     tm_layout(

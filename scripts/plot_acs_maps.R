@@ -12,6 +12,10 @@ source(here("scripts", "plot_boulevard_map.R"))
 #' @param streets_sf A spatial data frame (point) containing street names, used for labeling streets in the map.
 #' @param fill_column The name of the column in `sf` that contains the data to be visualized as a choropleth.
 #' @param legend_title The title for the legend in the map.
+#' @param xpad horizontal buffer for map bounding box
+#' @param ypad vertical buffer for map bounding box
+#' @param height height of saved plot
+#' @param width width of saved plot
 #' @param save A logical indicating whether to save the map to file. If `TRUE`, the map will be saved using the specified `file_extension`.
 #' @param file_extension The file extension to use when saving the map, e.g., ".png", ".svg". Defaults to ".png".
 #' @param outpath The path where the map will be saved.
@@ -25,6 +29,10 @@ plot_acs_maps = function(
     streets_sf,
     fill_column,
     legend_title,
+    xpad,
+    ypad,
+    height, 
+    width,
     save = FALSE,
     file_extension = ".png",
     outpath) {
@@ -196,6 +204,10 @@ plot_acs_maps = function(
     boulevard_sf = boulevard_sf,
     study_area_outline_sf = study_area_outline_sf,
     streets_sf = streets_sf,
+    xpad = xpad,
+    ypad = ypad,
+    height = height,
+    width = width,
     save = save,
     file_extension = file_extension,
     outpath = outpath)

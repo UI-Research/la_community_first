@@ -12,6 +12,7 @@ source(here("scripts", "plot_utility_functions.R"))
 #'
 #' @param df_boulevard A data frame containing ACS data for a specific boulevard.
 #' @param df_city A data frame containing ACS data for the entire city of Los Angeles.
+#' @param boulevard_name A string of the name of the boulevard of interest
 #' @param color A color palette 
 #' @param constructs A character vector of demographic or socioeconomic constructs to be plotted.
 #' @param denominators A character vector of column names in `df_boulevard` and `df_city` that will be used as denominators for calculating shares.
@@ -22,7 +23,8 @@ source(here("scripts", "plot_utility_functions.R"))
 #' @return A list of ggplot objects, each representing a comparison chart for a specific demographic or socioeconomic indicator.
 plot_comparison_charts = function(
     df_boulevard, 
-    df_city, 
+    df_city,
+    boulevard_name,
     color, 
     constructs, 
     denominators,
@@ -253,7 +255,8 @@ plot_comparison_charts = function(
     total_var = denominators,
     labels = str_c(constructs, "_labels"),
     group_order = str_c(constructs, "_bar_order"),
-    constructs = constructs) 
+    constructs = constructs,
+    boulevard_name = boulevard_name) 
   
   ## this iterates over each row in `plot_metadata` and applies each of the columns 
   ## from `plot_metadata` as arguments to the parameter of the same name in `map_variable()`

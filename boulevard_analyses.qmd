@@ -24,9 +24,10 @@ options(
 Set a boulevard variable
 
 ```{r}
-boulevard = "Pico"
+boulevard = "hoover"
 boulevard_tracts = file.path(file_path, boulevard, "maps", str_c(boulevard, "_buffer_tracts.shp")) %>%
-  st_read(quiet = TRUE)
+  st_read(quiet = TRUE) %>% 
+  st_set_crs(4326)
 ```
 
 Obtaining ACS data
@@ -49,7 +50,7 @@ Plotting comparison charts
 ```{r, fig.width = 6.5, fig.height = 2.5}
 color_palette = c(
   "LA City" = "#00447c",
-  "Pico" = "#A7c539")
+  "Hoover" = "#A7c539")
 
 plot_metadata = tribble(
   ~constructs, ~denominators,
@@ -71,10 +72,11 @@ plot_metadata = tribble(
 comparison_charts = plot_comparison_charts(
   df_boulevard = acs_tracts_boulevard, 
   df_city = acs_city_la,
+  boulevard_name = "Hoover",
   color = color_palette,
   constructs = plot_metadata$constructs,
   denominators = plot_metadata$denominators,
-  save = TRUE,
+  save = FALSE,
   outpath = file.path(file_path, boulevard, "Outputs"),
   file_extension = ".png")
 
@@ -84,62 +86,95 @@ comparison_charts
 
 Prepare spatial layers
 ```{r}
-projection = 2227
+projection = 2229
 
 ## tracts
-la_tracts <- st_read(file.path(file_path, "Hoover/Mapping/CA_census_Tracts.shp")) %>% 
-  filter(COUNTYFP == "037") %>%
-  st_transform(projection)
+la_tracts <- st_read(file.path(file_path, "Hoover/maps/CA_census_Tracts.shp")) %>% 
+  filter(COUNTYFP == "037") #%>%
+  #st_transform(projection)
 
 # boulevard_tracts <- st_read(file.path(file_path, "Pico/Maps/pico_buffer_tracts.shp")) %>%
 #   st_transform(4326) %>%
 #   st_make_valid()
+
 boulevard_tracts <- la_tracts %>%
   filter(GEOID %in% boulevard_tracts$GEOID)
 
 ## will need to update this 
 streets_sf = tribble(
   ~name, ~lat, ~lon, ~orientation, ~boulevard,
-  "Wilshire Blvd", 34.06217056027787, -118.29424612980146, 0, boulevard,
-  "Olympic Blvd", 34.05754326508076, -118.34502694326508, 0, boulevard,
-  "Washington Blvd", 34.040903520026625, -118.34737421737195, -10, boulevard,
-  "Rosa Parks Fwy", 34.036465982980886, -118.29767182226023, 0, boulevard,
-  "Adams Blvd", 34.03283003396823, -118.3254615038501, 0, boulevard,
-  "Jefferson Blvd", 34.02516133685176, -118.314070166191, 0, boulevard,
-  # "La Brea Ave", 34.037457517681425, -118.34948870419119, 75, boulevard,
-  "Crenshaw Blvd", 34.059019617009476, -118.32025318579531, 67, boulevard,
-  "Arlington Ave", 34.03130279886178, -118.31775449166764, 90, boulevard,
-  "Western Ave", 34.03064831048125, -118.30907566457537, 90, boulevard,
-  "Normandie Ave", 34.03040186970061, -118.30027509279961, 90, boulevard,
-  "Vermont Ave", 34.031803023478986, -118.29147407689182, 90, boulevard,
-  "Hoover St", 34.03191105597345, -118.28495893090334, 90, boulevard,
-  "Harbor Fwy", 34.05418379708543, -118.25980368140354, 55, boulevard) %>%
+  
+  #### Pico Locations ####
+  # "Wilshire Blvd", 34.06217056027787, -118.29424612980146, 0, boulevard,
+  # "Olympic Blvd", 34.05754326508076, -118.34502694326508, 0, boulevard,
+  # "Washington Blvd", 34.040903520026625, -118.34737421737195, -10, boulevard,
+  # "Rosa Parks Fwy", 34.036465982980886, -118.29767182226023, 0, boulevard,
+  # "Adams Blvd", 34.03283003396823, -118.3254615038501, 0, boulevard,
+  # "Jefferson Blvd", 34.02516133685176, -118.314070166191, 0, boulevard,
+  # # "La Brea Ave", 34.037457517681425, -118.34948870419119, 75, boulevard,
+  # "Crenshaw Blvd", 34.059019617009476, -118.32025318579531, 67, boulevard,
+  # "Arlington Ave", 34.03130279886178, -118.31775449166764, 90, boulevard,
+  # "Western Ave", 34.03064831048125, -118.30907566457537, 90, boulevard,
+  # "Normandie Ave", 34.03040186970061, -118.30027509279961, 90, boulevard,
+  # "Vermont Ave", 34.031803023478986, -118.29147407689182, 90, boulevard,
+  # "Hoover St", 34.03191105597345, -118.28495893090334, 90, boulevard,
+  # "Harbor Fwy", 34.05418379708543, -118.25980368140354, 55, boulevard
+  
+  #### Hoover Locations ####
+  "MLK Jr Blvd", 34.01114719258918, -118.26536648634915, 0, boulevard,
+  "Vernon Ave", 34.003854692348405, -118.26536648634915, 0, boulevard,
+  "Slauson Ave", 33.98932307117704, -118.26523319659992, 0, boulevard,
+  "Florence Ave", 33.974733696872036, -118.25616655173909, 0, boulevard,
+  "Manchester Ave", 33.960118221849065, -118.25607145690896, 0, boulevard,
+  "Harbor Fwy", 33.982781626478186, -118.28060176708684, 270, boulevard,
+  "Vermont Ave", 33.98235972870656, -118.29168835018301, 90, boulevard,
+  "Normandie Ave", 33.98235972870656, -118.30030677623152, 90, boulevard,
+  "Van Ness Ave", 33.983371941772745, -118.317750099191, 90, boulevard,
+  "Crenshaw Blvd", 33.98297019442496, -118.33092846920148, 90, boulevard,
+  "Main St", 33.982436755767004, -118.27400241679408, 270, boulevard,
+  "Avalon Blvd", 33.98253230870111, -118.26521583140891, 270, boulevard,
+  "Exposition Blvd", 34.018306424628975, -118.30579458465892, 0, boulevard
+  
+
+  
+  ) %>%
   st_as_sf(
     coords = c("lon", "lat"),
     crs = 4326) %>%
-  st_transform(projection) %>%
+  #st_transform(projection) %>%
   filter(boulevard == !!boulevard)
 
 #key locations
 locations_sf = tribble(
-  ~name, ~lon, ~lat, ~boulevard,
-  "Harold A Henry Park", -118.326204, 34.05771, boulevard,
-  "MacArthur Park", -118.277825, 34.059539, boulevard,
-  #"Los Angeles Elementary School", -118.30564277817867, 34.04767415795226, boulevard,
-  #"Los Angeles High School", -118.33290205238154, 34.05631575779619,  boulevard,
-  "Normandie Recreation Center", -118.299765, 34.044543, boulevard
-  ) %>%
-  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
-  st_transform(projection)
+  ~name, ~lat, ~lon, ~boulevard,
+  
+  #### Pico Locations ####
+  # "Harold A Henry Park", 34.05771, -118.326204, boulevard,
+  # "MacArthur Park", 34.059539, -118.277825, boulevard,
+  # #"Los Angeles Elementary School", 34.04767415795226, -118.30564277817867, boulevard,
+  # #"Los Angeles High School", 34.05631575779619, -118.33290205238154,  boulevard,
+  # "Normandie Recreation Center", 34.044543, -118.299765, boulevard
+  
+  #### Hoover Locations ####
+  "Exposition Park", 34.01465919961802, -118.28749014509255, boulevard,
+  "Harvard Park", 33.984241239976996, -118.30467543777576, boulevard,
+  "Algin Sutton Recreation Center", 33.95628624786266, -118.28592530502922, boulevard,
+  "Augustus Hawkins High School", 33.98689352636203, -118.28809332457882, boulevard,
+  "Vermont Square Park", 34.00025327505379, -118.2972922149193, boulevard,
+  "South Park Recreation Center", 33.997457650265595, -118.26774886549762, boulevard
 
-boulevard_outline <- st_union(boulevard_tracts) %>%
-  st_transform(projection)
-boulevard_corridor <- st_read(file.path(file_path, "Pico/Maps/pico_blvd.shp")) %>%
-  st_transform(projection)
+  ) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) #%>%
+  #st_transform(projection)
+
+boulevard_outline <- st_union(boulevard_tracts) #%>%
+  #st_transform(projection)
+boulevard_corridor <- st_read(file.path(file_path, boulevard, "maps", paste0(boulevard, "_blvd.shp"))) %>%
+  st_transform(4326) 
 ```
 
 
-Plot choropleths
+Plot chloropleths
 ```{r, fig.width = 6.5, fig.height = 4.5}
 # "share_hearing_diff", "Disability, Hearing",
 # "share_vision_diff", "Disability, Vision",
@@ -172,6 +207,10 @@ plot_acs_maps(
   streets_sf = streets_sf,
   fill_column = plot_metadata$fill_column,
   legend_title = plot_metadata$legend_title,
+  xpad = 5000,
+  ypad = 0,
+  height = 7,
+  width = 6,
   save = TRUE,
   outpath = file.path(file_path, boulevard, "Outputs"),
   file_extension = ".png")
@@ -194,7 +233,6 @@ zoning_sf = get_non_acs_data(
   base_path = file_path,
   dataset_name = "zoning",
   area = boulevard) %>%
-  st_transform(projection) %>% 
   st_intersection(boulevard_corridor %>% st_buffer(2640))
 
 h_and_t_sf = boulevard_tracts %>%
@@ -226,7 +264,11 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  projection = 2227,
+  xpad = 5000,
+  ypad = 0,
+  height = 7,
+  width = 6,
+  projection = projection,
   legend_title = "Affordable Housing",
   style = "cont",
   map_type = "point",
@@ -243,6 +285,11 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
+  xpad = 5000,
+  ypad = 0,
+  height = 7,
+  width = 6,
+  projection = projection,
   legend_title = "Senior Housing",
   style = "cont",
   map_type = "point",
@@ -259,6 +306,11 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
+  xpad = 5000,
+  ypad = 0,
+  height = 7,
+  width = 6,
+  projection = projection,
   legend_title = "Zoning",
   palette_colors = c(
     "Agricultural or Open Space" = "#00447C",
@@ -283,6 +335,11 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
+  xpad = 5000,
+  ypad = 0,
+  height = 7,
+  width = 6,
+  projection = projection,
   legend_title = "Crashes",
   palette_colors = c("Bicyclist invovled crash" = "#A7C539", 
                      "Pedestrian involved crash" = "#00447C", 
@@ -301,6 +358,11 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
+  xpad = 5000,
+  ypad = 0,
+  height = 7,
+  width = 6,
+  projection = projection,
   legend_title = "HLA Supporting",
   bins = 2,
   map_type = "choropleth",
@@ -321,6 +383,11 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
+  xpad = 5000,
+  ypad = 0,
+  height = 7,
+  width = 6,
+  projection = projection,
   legend_title = "Transportation as Share of Income",
   map_type = "choropleth",
   border_color = NA,

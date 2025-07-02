@@ -88,7 +88,8 @@ plot_indicator <- function(
     df_city = df_city, 
     var_list, 
     total_var,
-    labels, 
+    labels,
+    boulevard_name = NA_character_,
     group_order, 
     title = NULL, 
     constructs,
@@ -103,12 +104,12 @@ plot_indicator <- function(
   group_order = get(group_order, envir = sys.frames()[[1]])
   
   la <- compute_shares(df_city, var_list, total_var)
-  pico <- compute_shares(df_boulevard, var_list, total_var)
+  study_area <- compute_shares(df_boulevard, var_list, total_var)
  
-  pico_long <- prepare_long_data(pico, "Pico", labels)
+  study_area_long <- prepare_long_data(study_area, boulevard_name, labels)
   la_long   <- prepare_long_data(la, "LA City", labels)
   
-  combined <- bind_rows(pico_long, la_long)
+  combined <- bind_rows(study_area_long, la_long)
   
   plot = plot_comparison(
     df = combined,

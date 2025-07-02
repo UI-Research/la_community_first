@@ -12,18 +12,18 @@ library(janitor)
 get_non_acs_data = function(
     base_path,
     dataset_name = c("affordable_housing", "senior_housing", "zoning", "h_and_t", "crash", "hla"),
-    area = c("LA", "Pico", "MLK", "Hoover")) {
+    area = c("LA", "pico", "MLK", "hoover")) {
   
   ## used for filtering crash data
   primary_road_string = "PICO"
   if (area == "MLK") primary_road_string = "MARTIN LUTHER|MLK"
-  if (area == "Hoover") primary_road_string = "HOOVER"
+  if (area == "hoover") primary_road_string = "HOOVER"
   
   if (area == "LA") file_path = file.path(base_path, "Data", "LA tracts", "LA_City_2020_Census_Tracts_.shp")
-  if (area != "LA") file_path = file.path(base_path, "Data", "Mapping", "Boulevards", area, str_c(area, "_buffer_tracts.shp"))
+  if (area != "LA") file_path = file.path(file_path, boulevard, "maps", str_c(boulevard, "_buffer_tracts.shp"))
 
   tracts_sf = st_read(file_path, quiet = TRUE) %>%
-    st_transform(4326) %>%
+    st_set_crs(4326) %>% 
     st_make_valid()
 
   if (dataset_name == "senior_housing") {
@@ -34,9 +34,10 @@ get_non_acs_data = function(
   
   if (dataset_name == "affordable_housing") {
     result <- st_read(file.path(base_path, "Data/Affordable_Housing_Development/Affordable_Housing_Development.shp")) %>%
-      st_transform(4326) %>%
-      st_make_valid() %>%
-      st_filter(tracts_sf) }
+       st_transform(4326) %>%
+       st_make_valid() %>%
+       st_filter(tracts_sf) 
+    }
   
   if (dataset_name == "zoning") {
     ## these data are large, so we process and save to disk
@@ -63,7 +64,6 @@ get_non_acs_data = function(
       result1 <- st_read(file.path(base_path, "Data/Zoning/Zoning.shp")) %>%
         st_transform(4326) %>%
         st_make_valid() 
-      
       buffer_area = tracts_sf %>% st_bbox() %>% st_as_sfc()
       
       result2 = result1 %>%
