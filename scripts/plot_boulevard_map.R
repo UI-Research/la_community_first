@@ -59,6 +59,7 @@ plot_boulevard_map = function(
   streets_sf = streets_sf %>% st_transform(projection)
   tracts_sf = tracts_sf %>% st_transform(projection)
   
+
   ## most legend aesthetics specified in `tm_layout()` below
   legend = tm_legend(
     title = legend_title %>% str_wrap(width = 25), 

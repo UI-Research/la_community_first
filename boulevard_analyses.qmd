@@ -396,9 +396,10 @@ plot_boulevard_map(
   file_extension = ".png",
   outpath = file.path(file_path, boulevard, "Outputs"))
 ```
+
 Table 1: Top Countries for Foreign-born Study Area Residents
 ```{r}
-acs_data_boulevard %>%
+acs_tracts_boulevard %>%
   st_drop_geometry %>%
   ## table on foreign-born persons by country
   select(GEOID, matches("B05006_")) %>%
@@ -445,7 +446,7 @@ disability_counts <- acs_tracts_boulevard |>
          self_care_difficulty = rowSums(across(starts_with("B18106"))),
          independent_living_difficulty = rowSums(across(starts_with("B18107"))),
          ) |>
-  select(ends_with(c("_difficulty", "disability"))) |>
+  select(ends_with(c("_difficulty"))) |>
   summarise(across(everything(), sum, na.rm = TRUE)) |>
   gather(key = "Disability", value = "Count")
 
@@ -470,6 +471,8 @@ disability_counts <- acs_tracts_boulevard |>
       legend.position = "none",
       panel.grid.major.x = element_blank(),
       text = element_text(family = "Arial", color = "black"))
+ 
+disability_plot
 
 ggsave(filename = "disability_counts.png", 
        plot = disability_plot, 
