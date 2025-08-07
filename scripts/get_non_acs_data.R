@@ -6,17 +6,17 @@ library(janitor)
 #'
 #' @param base_path The base path to the data directory.
 #' @param dataset_name The name of the dataset to retrieve. Options include "affordable_housing", "senior_housing", "zoning", "h_and_t", "crash", and "hla".
-#' @param area The area for which to retrieve data. Options include "LA", "Pico", "MLK", and "Hoover". 
+#' @param area The area for which to retrieve data. Options include "LA", "Pico", "mlk", and "Hoover". 
 #'
 #' @return A spatial data frame containing the requested dataset filtered to the specified area.
 get_non_acs_data = function(
     base_path,
     dataset_name = c("affordable_housing", "senior_housing", "zoning", "h_and_t", "crash", "hla"),
-    area = c("LA", "pico", "MLK", "hoover")) {
+    area = c("LA", "pico", "mlk", "hoover")) {
   
   ## used for filtering crash data
-  primary_road_string = "PICO"
-  if (area == "MLK") primary_road_string = "MARTIN LUTHER|MLK"
+  primary_road_string = "pico"
+  if (area == "mlk") primary_road_string = "MARTIN LUTHER|MLK"
   if (area == "hoover") primary_road_string = "HOOVER"
   
   if (area == "LA") file_path = file.path(base_path, "Data", "LA tracts", "LA_City_2020_Census_Tracts_.shp")
@@ -123,7 +123,7 @@ get_non_acs_data = function(
       select(GEOID, matches("bin"), everything()) }
 
   if (dataset_name == "crash") {
-    result <- read_csv(file.path(base_path, "Data/la_ksi_crashes.csv")) %>%
+    result <- read_csv(file.path(base_path, area, "Outputs", paste0(area, "_crashes.csv"))) %>%
       filter(!is.na(POINT_X), !is.na(POINT_Y)) %>%
       st_as_sf(
        coords = c("POINT_X", "POINT_Y"),
@@ -135,7 +135,7 @@ get_non_acs_data = function(
       janitor::clean_names() %>%
       filter(
         ## only crashes on the primary street
-        str_detect(primary_rd, primary_road_string),
+        #str_detect(primary_rd, primary_road_string),
         ## only crashes that aren't on a state highway
         state_hwy_ind == "N") %>%
       transmute(
@@ -149,11 +149,53 @@ get_non_acs_data = function(
       transmute(
         id,
         crash_type = name %>% str_replace_all(c("_" = " ")) %>% str_to_sentence(),
-        crash_type = factor(crash_type, levels = c(
-          "Pedestrian involved crash",
-          "Bicyclist invovled crash",
-          "Other vehicle crash"))) 
-    }
+      ) %>% 
+      mutate(crash_type = case_when(
+        crash_type == "Pedestrian involved crash" ~ "Pedestrian involved severe crash", 
+        crash_type == "Bicyclist invovled crash" ~ "Bicyclist involved severe crash", 
+        crash_type == "Other vehicle crash" ~ "Other vehicle severe crash"
+      )
+      )  
+  }
+  
+  if (dataset_name == "crash_full") {
+    result <- read_csv(file.path(base_path, area, "Outputs", paste0(area, "_crashes_study_area.csv"))) %>%
+      filter(!is.na(POINT_X), !is.na(POINT_Y)) %>%
+      st_as_sf(
+        coords = c("POINT_X", "POINT_Y"),
+        crs = 4326,
+        remove = FALSE) %>%
+      st_transform(4326) %>%
+      st_make_valid() %>%
+      st_filter(tracts_sf) %>%
+      janitor::clean_names() %>%
+      filter(
+        ## only crashes that aren't on a state highway
+        state_hwy_ind == "N") %>%
+      transmute(
+        id = case_id, 
+        pedestrian_involved_crash = pedestrian_accident,
+        bicyclist_invovled_crash = bicycle_accident,
+        other_vehicle_crash = if_else(
+          is.na(pedestrian_involved_crash) & is.na(bicyclist_invovled_crash), "Y", NA)) %>%
+      pivot_longer(matches("crash")) %>%
+      filter(value == "Y") %>%
+      transmute(
+        id,
+        crash_type = name %>% str_replace_all(c("_" = " ")) %>% str_to_sentence(),
+        ) %>% 
+      mutate(crash_type = case_when(
+        crash_type == "Pedestrian involved crash" ~ "Pedestrian involved severe crash", 
+        crash_type == "Bicyclist invovled crash" ~ "Bicyclist involved severe crash", 
+        crash_type == "Other vehicle crash" ~ "Other vehicle severe crash"
+      )
+      #,
+      # crash_type = factor(crash_type, levels = c(
+      #   "Pedestrian involved severe crash",
+      #   "Bicyclist involved severe crash",
+      #   "Other vehicle severe crash"))
+      )  
+  }
 
   if (dataset_name == "hla") {
     result = st_read(file.path(base_path, "Data/Measure HLA Vote/HLA.shp")) %>%

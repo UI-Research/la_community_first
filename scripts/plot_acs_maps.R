@@ -14,6 +14,8 @@ source(here("scripts", "plot_boulevard_map.R"))
 #' @param legend_title The title for the legend in the map.
 #' @param xpad horizontal buffer for map bounding box
 #' @param ypad vertical buffer for map bounding box
+#' @param scale_bar_position horizontal position of scale bar
+#' @param compass_position horizontal position of compass
 #' @param height height of saved plot
 #' @param width width of saved plot
 #' @param save A logical indicating whether to save the map to file. If `TRUE`, the map will be saved using the specified `file_extension`.
@@ -31,6 +33,8 @@ plot_acs_maps = function(
     legend_title,
     xpad,
     ypad,
+    scale_bar_position = .72,
+    compass_position = .70, 
     height, 
     width,
     save = FALSE,
@@ -38,12 +42,13 @@ plot_acs_maps = function(
     outpath) {
   
   english_less_than_very_well_denominator_vars = c(
-    "C16001_005", "C16001_020", "C16001_023", "C16001_008", "C16001_011", 
-    "C16001_014", "C16001_017", "C16001_026", "C16001_029", "C16001_032", 
-    "C16001_035", "C16001_038")
+    "C16001_005", "C16001_008", "C16001_011", "C16001_014", 
+    "C16001_017", "C16001_020", "C16001_023", "C16001_026", 
+    "C16001_029", "C16001_032", "C16001_035", "C16001_038")
   
   ####----Calculating Percentage Variables to be Plotted----####
   #sf = acs_data_boulevard
+  browser()
   sf = sf %>%
     rename(
       commute_total = B08303_001,
@@ -206,6 +211,8 @@ plot_acs_maps = function(
     streets_sf = streets_sf,
     xpad = xpad,
     ypad = ypad,
+    scale_bar_position = scale_bar_position,
+    compass_position = compass_position,
     height = height,
     width = width,
     save = save,
