@@ -202,7 +202,7 @@ get_non_acs_data = function(
       st_make_valid() %>%
       st_transform(crs = 4326) %>%
       st_filter(tracts_sf) %>%
-      transmute(
+      mutate(
         hla_total_vote_count = V3_LOS_A_4,
         hla_affirmative_vote_count = V3_LOS_A_2,
         hla_affirmative_vote_share = V3_LOS_A_5) }
