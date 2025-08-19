@@ -20,7 +20,7 @@ get_non_acs_data = function(
   if (area == "hoover") primary_road_string = "HOOVER"
   
   if (area == "LA") file_path = file.path(base_path, "Data", "LA tracts", "LA_City_2020_Census_Tracts_.shp")
-  if (area != "LA") file_path = file.path(file_path, boulevard, "maps", str_c(boulevard, "_buffer_tracts.shp"))
+  if (area != "LA") file_path = file.path(file_path, boulevard, "maps", str_c(boulevard, "_tracts.shp"))
 
   tracts_sf = st_read(file_path, quiet = TRUE) %>%
     st_set_crs(4326) %>% 
@@ -42,37 +42,43 @@ get_non_acs_data = function(
   if (dataset_name == "zoning") {
     ## these data are large, so we process and save to disk
     ## if they already are available on disk, we read from there rather than reprocessing
-    if (area %in% st_layers(file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"))$name) {
-      
-      result = st_read(
-        file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"), 
-        layer = area, 
-        quiet = TRUE) %>%
-        st_transform(4326) %>%
-        st_make_valid() %>%
-        mutate(
-          zoning_category = factor(zoning_category, levels = c(
-            "Agricultural or Open Space",
-            "Highways or Parking",
-            "Commercial or Industrial",
-            "Multi-family Residential",
-            "Single-family Residential",
-            "Public")))
-
-    } else {
-      
+    # if (area %in% st_layers(file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"))$name) {
+    #   
+    #   result = st_read(
+    #     file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"), 
+    #     layer = area, 
+    #     quiet = TRUE) %>%
+    #     st_transform(4326) %>%
+    #     st_make_valid() %>%
+    #     mutate(
+    #       zoning_category = factor(zoning_category, levels = c(
+    #         "Agricultural or Open Space",
+    #         "Highways or Parking",
+    #         "Commercial or Industrial",
+    #         "Multi-family Residential",
+    #         "Single-family Residential",
+    #         "Public")))
+    # 
+    # } else {
+    # browser()
+   
       result1 <- st_read(file.path(base_path, "Data/Zoning/Zoning.shp")) %>%
         st_transform(4326) %>%
         st_make_valid() 
       buffer_area = tracts_sf %>% st_bbox() %>% st_as_sfc()
       
+      result <- st_read(file.path(base_path, "Data/Zoning/samo_Zoning.shp")) %>% 
+        rename(zoning_category = znng_ct) %>% 
+        st_filter(buffer_area %>% st_transform(4326)) %>%
+        st_intersection(tracts_sf %>% st_transform(4326))
+
       result2 = result1 %>%
         st_filter(buffer_area %>% st_transform(4326)) %>%
         st_intersection(tracts_sf %>% st_transform(4326)) %>%
         janitor::clean_names() %>%
         mutate(
           zoning_category = case_when(
-            category %in% c("Commercial", "Manufacturing", "Industrial", "Commercial-Mixed", "Industrial-Mixed") ~ "Commercial or Industrial",
+            category %in% c("Commercial", "Manufacturing", "Industrial", "Commercial-Mixed", "Industrial-Mixed", "Hybrid Industrial") ~ "Commercial or Industrial",
             category %in% c("Public", "Public Facilities") ~ "Public",
             category %in% c("Parking", "Freeway") ~ "Highways or Parking",
             category %in% c("Agricultural", "Open Space") ~ "Agricultural or Open Space",
@@ -83,7 +89,8 @@ get_non_acs_data = function(
               levels = c(
                 "Single-family Residential", "Multi-family Residential", "Public",
                 "Agricultural or Open Space", "Commercial or Industrial", 
-                "Highways or Parking")))
+                "Highways or Parking"))) %>% 
+        bind_rows(result)
       
       if (result2 %>% filter(is.na(zoning_category)) %>% nrow() != 0) {
         stop("Some zoning categories have not been categorized. Update code in `get_non_acs_data.R`")}
@@ -100,7 +107,8 @@ get_non_acs_data = function(
         delete_layer = TRUE,
         quiet = TRUE)
       
-      result = result3 }}
+      result = result3 }
+  #}
   
   if (dataset_name == "h_and_t") {
     result = read_csv(file.path(base_path, "Data/htaindex2022_data_tracts_06.csv")) %>%

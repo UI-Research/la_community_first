@@ -24,13 +24,14 @@ options(
 Set a boulevard variable
 
 ```{r}
-boulevard = "mlk"
-boulevard_tracts = file.path(file_path, boulevard, "maps", str_c(boulevard, "_buffer_tracts.shp")) %>%
+boulevard = "samo"
+boulevard_tracts = file.path(file_path, boulevard, "maps", str_c(boulevard, "_tracts.shp")) %>%
   st_read(quiet = TRUE) #%>% 
   #st_set_crs(4326)
 ```
 
 Obtaining ACS data
+
 ```{r}
 acs_tracts_la = get_acs_data(
     file_path = file_path, 
@@ -38,7 +39,8 @@ acs_tracts_la = get_acs_data(
     census_geography = "tract")
 
 acs_tracts_boulevard = acs_tracts_la %>%
-  filter(GEOID %in% boulevard_tracts$GEOID)
+  filter(GEOID %in% boulevard_tracts$GEOID) %>% 
+  filter(str_starts(GEOID, c("0603726|0603798")))
 
 acs_city_la = get_acs_data(
   file_path = file_path, 
@@ -46,11 +48,12 @@ acs_city_la = get_acs_data(
   census_geography = "place") 
 ```
 
-Plotting comparison charts 
+Plotting comparison charts
+
 ```{r, fig.width = 6.5, fig.height = 2.5}
 color_palette = c(
   "LA City" = "#00447c",
-  "MLK East" = "#A7c539")
+  "Santa Monica to Westwood" = "#A7c539")
 
 plot_metadata = tribble(
   ~constructs, ~denominators,
@@ -73,7 +76,7 @@ plot_metadata = tribble(
 comparison_charts = plot_comparison_charts(
   df_boulevard = acs_tracts_boulevard, 
   df_city = acs_city_la,
-  boulevard_name = "MLK East",
+  boulevard_name = "Santa Monica to Westwood",
   color = color_palette,
   constructs = plot_metadata$constructs,
   denominators = plot_metadata$denominators,
@@ -86,8 +89,8 @@ comparison_charts
 
 ```
 
-
 Prepare spatial layers
+
 ```{r}
 projection = 2229
 
@@ -139,18 +142,26 @@ streets_sf = tribble(
   # "Exposition Blvd", 34.018306424628975, -118.30579458465892, 0, boulevard
   
   #### MLK East Locations ####
-  "Vernon Ave", 34.003854692348405, -118.26536648634915, 0, boulevard,
-  "Harbor Fwy", 33.997457650265595, -118.28060176708684, 90, boulevard,
-  "Vermont Ave", 33.997457650265595, -118.29157543208511, 90, boulevard,
-  "Main St", 33.997457650265595, -118.27400241679408, 90, boulevard,
-  "Avalon Blvd", 33.997457650265595, -118.26521583140891, 90, boulevard,
-  "S Central Ave", 33.997457650265595, -118.25654362606636, 90, boulevard,
-  "Compton Ave", 33.997457650265595, -118.24782315230883, 90, boulevard,
-  "Alameda St", 33.997457650265595, -118.23893194279209, 90, boulevard,
-  "Exposition Blvd", 34.018306424628975, -118.29579458465892, 0, boulevard,
-  "W Jefferson Blvd", 34.015349134822415, -118.26539713983982, 330, boulevard,
-  "W Adams Blvd", 34.02171394087482, -118.26149019886697, 330, boulevard,
-  "I-10 Highway", 34.02963863308693, -118.2562396832706, 330, boulevard
+  # "Vernon Ave", 34.003854692348405, -118.26536648634915, 0, boulevard,
+  # "Harbor Fwy", 33.997457650265595, -118.28060176708684, 90, boulevard,
+  # "Vermont Ave", 33.997457650265595, -118.29157543208511, 90, boulevard,
+  # "Main St", 33.997457650265595, -118.27400241679408, 90, boulevard,
+  # "Avalon Blvd", 33.997457650265595, -118.26521583140891, 90, boulevard,
+  # "S Central Ave", 33.997457650265595, -118.25654362606636, 90, boulevard,
+  # "Compton Ave", 33.997457650265595, -118.24782315230883, 90, boulevard,
+  # "Alameda St", 33.997457650265595, -118.23893194279209, 90, boulevard,
+  # "Exposition Blvd", 34.018306424628975, -118.29579458465892, 0, boulevard,
+  # "W Jefferson Blvd", 34.015349134822415, -118.26539713983982, 330, boulevard,
+  # "W Adams Blvd", 34.02171394087482, -118.26149019886697, 330, boulevard,
+  # "I-10 Highway", 34.02963863308693, -118.2562396832706, 330, 
+  
+  #### SaMo Locations ####
+  "Wilshire Blvd", 34.06683213656107, -118.42883208040895, 30, boulevard,
+  "I-405 Highway", 34.062111891101544, -118.45732644292302, 300, boulevard,
+  "I-10 Highway", 34.03178241375306, -118.42224986808957,330, boulevard,
+  "San Vicente Blvd", 34.05190061515859, -118.47460501575662, 30, boulevard,
+  "Santa Monica Blvd", 34.033194769667645, -118.4743223448754, 50, boulevard,
+  "Colorado Ave", 34.03062380737115, -118.47117687859794, 50, boulevard
   
   ) %>%
   st_as_sf(
@@ -179,12 +190,21 @@ locations_sf = tribble(
   # "South Park Recreation Center", 33.997457650265595, -118.26774886549762, boulevard
 
   #### MLK East Locations ####
-  "Exposition Park", 34.01465919961802, -118.28749014509255, boulevard,
-  #"South Park Recreation Center", 33.997457650265595, -118.26774886549762, boulevard,  
-  "Thomas Jefferson High School", 34.00997417280373, -118.25116074723486, boulevard,
-  "Gilbert Lindsay Recreation Center", 34.00740067778371, -118.26759083665975, boulevard,
-  #"Santee High School", 34.028448683424934, -118.2634537575853, boulevard,
-  "University of Southern California", 34.02250540388042, -118.28501499219414, boulevard
+  # "Exposition Park", 34.01465919961802, -118.28749014509255, boulevard,
+  # #"South Park Recreation Center", 33.997457650265595, -118.26774886549762, boulevard,  
+  # "Thomas Jefferson High School", 34.00997417280373, -118.25116074723486, boulevard,
+  # "Gilbert Lindsay Recreation Center", 34.00740067778371, -118.26759083665975, boulevard,
+  # #"Santee High School", 34.028448683424934, -118.2634537575853, boulevard,
+  # "University of Southern California", 34.02250540388042, -118.28501499219414, boulevard
+  
+  #### SaMo Locations ####
+  "UCLA", 34.06993161179595, -118.44678711417353, boulevard,
+  "West LA VA Medical Center", 34.05247315379336, -118.45295447084322, boulevard,
+  "University High School", 34.04561998108219, -118.46096278532994, boulevard,
+  "Beverly Hills High School", 34.061242565789044, -118.41023652161807, boulevard,
+  "Stoner Park", 34.03820077425739, -118.4539619445094, boulevard,
+  "The Getty", 34.07715346855072, -118.47442918126463, boulevard,
+  "Santa Monica Airport", 34.016609712728666, -118.45033595223472, boulevard
   
   ) %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326) #%>%
@@ -192,12 +212,12 @@ locations_sf = tribble(
 
 boulevard_outline <- st_union(boulevard_tracts) #%>%
   #st_transform(projection)
-boulevard_corridor <- st_read(file.path(file_path, boulevard, "maps", paste0(boulevard, "_blvd.shp"))) %>%
+boulevard_corridor <- st_read(file.path(file_path, boulevard, "maps", paste0(boulevard, "_corridor.shp"))) %>%
   st_transform(4326) 
 ```
 
-
 Plot chloropleths
+
 ```{r, fig.width = 6.5, fig.height = 4.5}
 # "share_hearing_diff", "Disability, Hearing",
 # "share_vision_diff", "Disability, Vision",
@@ -230,18 +250,19 @@ plot_acs_maps(
   streets_sf = streets_sf,
   fill_column = plot_metadata$fill_column,
   legend_title = plot_metadata$legend_title,
-  xpad = 2500,
-  ypad = 1750,
+  xpad = 4500,
+  ypad = 3750,
   scale_bar_position = .74,
   compass_position = .72, 
   height = 4.5,
   width = 6.5,
-  save = FALSE,
+  save = TRUE,
   outpath = file.path(file_path, boulevard, "Outputs"),
   file_extension = ".png")
 ```
 
 Non-ACS data
+
 ```{r}
 affordable_housing_sf = get_non_acs_data(
   base_path = file_path,
@@ -289,6 +310,7 @@ hla_sf = get_non_acs_data(
 ```
 
 Non-ACS maps
+
 ```{r, fig.width = 6.5, fig.height = 4.5}
 
 ## affordable housing
@@ -472,8 +494,8 @@ plot_boulevard_map(
 
 
   bbox <- st_bbox(boulevard_corridor)
-  xpad = 0.018
-  ypad = 0.018
+  xpad = 0.015
+  ypad = 0.015
     
   ## Add padding to x or y direction
   bbox["xmin"] <- bbox["xmin"] - xpad
@@ -566,33 +588,31 @@ tmap_save(map2, file = here(file_path, boulevard, "Outputs", "study_area_map.png
 ```
 
 Table 1: Top Countries for Foreign-born Study Area Residents
+
 ```{r}
 acs_tracts_boulevard %>%
   st_drop_geometry %>%
   ## table on foreign-born persons by country
   select(GEOID, matches("B05006_")) %>%
   pivot_longer(-GEOID, names_to = "variable", values_to = "estimate") %>% 
-  mutate(
-    country = case_when(
-      variable == "B05006_001" ~ "Table universe",
-      variable == "B05006_158" ~ "Guatemala",
-      variable == "B05006_157" ~ "El Salvador",
-      variable == "B05006_160" ~ "Mexico",
-      variable == "B05006_054" ~ "Korea",
-      variable == "B05006_049" ~ "China",
-      variable == "B05006_074" ~ "Phillipines",
-      variable == "B05006_159" ~ "Honduras",
-      TRUE ~ NA_character_)) %>%
+  # mutate(
+  #   country = case_when(
+  #     variable == "B05006_001" ~ "Table universe",
+  #     variable == "B05006_158" ~ "Guatemala",
+  #     variable == "B05006_157" ~ "El Salvador",
+  #     variable == "B05006_160" ~ "Mexico",
+  #     variable == "B05006_054" ~ "Korea",
+  #     variable == "B05006_049" ~ "China",
+  #     variable == "B05006_074" ~ "Phillipines",
+  #     variable == "B05006_159" ~ "Honduras",
+  #     TRUE ~ NA_character_)) %>%
   summarize(
-    .by = country, 
+    .by = variable, 
     estimate = sum(estimate, na.rm = TRUE)) %>%
-  filter(!is.na(country), estimate > 1000) %>%
-  arrange(desc(estimate)) %>%
+  #filter(!is.na(country), estimate > 1000) %>%
+  arrange(desc(estimate)) #%>%
   mutate(share = round((estimate / estimate[country == "Table universe"]) * 100, digits = 0))
 ```
-
-
-
 
 ```{r Other charts}
 
@@ -799,10 +819,32 @@ sum(h_and_t_sf$population * h_and_t_sf$t_ami) / sum(h_and_t_sf$population)
 
 
 
+
+buffer_area = boulevard_tracts %>% st_bbox() %>% st_as_sfc()
+
+result1 <- samo_test %>%
+        st_transform(4326) %>%
+        st_make_valid() 
+
+result2 = result1 %>%
+        st_filter(buffer_area %>% st_transform(4326)) %>%
+        st_intersection(boulevard_tracts %>% st_transform(4326)) %>%
+        janitor::clean_names() %>%
+  mutate(zoning_category = case_when(
+            zoning %in% c("MUB", "HMU", "MUBL", "OC", "CAC", "CCS", "IC", "MUC", "NC") ~ "Commercial or Industrial",
+            zoning %in% c("OS", "PL", "BTV") ~ "Public",
+            #zoning %in% c("Parking", "Freeway") ~ "Highways or Parking",
+            #zoning %in% c("Agricultural", "Open Space") ~ "Agricultural or Open Space",
+            zoning %in% c("R2", "R3", "R4", "RMH") ~ "Multi-family Residential",
+            zoning %in% c("R1") ~ "Single-family Residential",
+            TRUE ~ zoning) %>%
+            factor(
+              levels = c(
+                "Single-family Residential", "Multi-family Residential", "Public",
+                "Agricultural or Open Space", "Commercial or Industrial", 
+                "Highways or Parking")))
+
+
+
+
 ```
-
-
-
-
-
-

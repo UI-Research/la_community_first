@@ -48,7 +48,6 @@ plot_acs_maps = function(
   
   ####----Calculating Percentage Variables to be Plotted----####
   #sf = acs_data_boulevard
-  browser()
   sf = sf %>%
     rename(
       commute_total = B08303_001,
