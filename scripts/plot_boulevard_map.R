@@ -174,11 +174,11 @@ plot_boulevard_map = function(
       labels = "Points of Interest",
       frame.lwd = 0,
       position = tm_pos_on_top("left", "top"),
-      bg.color = "white",    
+      bg.color = "white",
       bg.alpha = 0.9,
-      title.size = .8,        
-      title.color = "black",  
-      text.color = "black",   
+      title.size = .8,
+      title.color = "black",
+      text.color = "black",
       title.fontface = "bold"
     ) +
     tm_shape(
@@ -186,14 +186,14 @@ plot_boulevard_map = function(
       tm_dots(
         col = "black",
         size = 0.4) +
-      tm_text(
-        "name",
-        size = 0.6,
-        col = "black",
-        options = opt_tm_text(just = "center"),
-        ymod = 1.5,
-        fontface = "bold",
-        fontfamily = "Calibri") +
+    tm_text(
+      "name",
+      size = 0.6,
+      col = "black",
+      options = opt_tm_text(just = "center"),
+      ymod = 1.5,
+      fontface = "bold",
+      fontfamily = "Calibri") +
     tm_shape(
       streets_sf, bbox = bbox) +
       tm_text(

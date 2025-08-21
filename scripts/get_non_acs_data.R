@@ -40,39 +40,34 @@ get_non_acs_data = function(
     }
   
   if (dataset_name == "zoning") {
-    ## these data are large, so we process and save to disk
-    ## if they already are available on disk, we read from there rather than reprocessing
-    # if (area %in% st_layers(file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"))$name) {
-    #   
-    #   result = st_read(
-    #     file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"), 
-    #     layer = area, 
-    #     quiet = TRUE) %>%
-    #     st_transform(4326) %>%
-    #     st_make_valid() %>%
-    #     mutate(
-    #       zoning_category = factor(zoning_category, levels = c(
-    #         "Agricultural or Open Space",
-    #         "Highways or Parking",
-    #         "Commercial or Industrial",
-    #         "Multi-family Residential",
-    #         "Single-family Residential",
-    #         "Public")))
-    # 
-    # } else {
-    # browser()
-   
-      result1 <- st_read(file.path(base_path, "Data/Zoning/Zoning.shp")) %>%
+    # these data are large, so we process and save to disk
+    # if they already are available on disk, we read from there rather than reprocessing
+    if (area %in% st_layers(file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"))$name) {
+
+      result = st_read(
+        file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"),
+        layer = area,
+        quiet = TRUE) %>%
+        st_transform(4326) %>%
+        st_make_valid() %>%
+        mutate(
+          zoning_category = factor(zoning_category, levels = c(
+            "Agricultural or Open Space",
+            "Highways or Parking",
+            "Commercial or Industrial",
+            "Multi-family Residential",
+            "Single-family Residential",
+            "Public")))
+
+    } else {
+    browser()
+      result <- st_read(file.path(base_path, "Data/Zoning/Zoning.shp")) %>%
         st_transform(4326) %>%
         st_make_valid() 
       buffer_area = tracts_sf %>% st_bbox() %>% st_as_sfc()
       
-      result <- st_read(file.path(base_path, "Data/Zoning/samo_Zoning.shp")) %>% 
-        rename(zoning_category = znng_ct) %>% 
-        st_filter(buffer_area %>% st_transform(4326)) %>%
-        st_intersection(tracts_sf %>% st_transform(4326))
 
-      result2 = result1 %>%
+      result2 <-  result %>%
         st_filter(buffer_area %>% st_transform(4326)) %>%
         st_intersection(tracts_sf %>% st_transform(4326)) %>%
         janitor::clean_names() %>%
@@ -89,8 +84,7 @@ get_non_acs_data = function(
               levels = c(
                 "Single-family Residential", "Multi-family Residential", "Public",
                 "Agricultural or Open Space", "Commercial or Industrial", 
-                "Highways or Parking"))) %>% 
-        bind_rows(result)
+                "Highways or Parking")))
       
       if (result2 %>% filter(is.na(zoning_category)) %>% nrow() != 0) {
         stop("Some zoning categories have not been categorized. Update code in `get_non_acs_data.R`")}
@@ -108,7 +102,7 @@ get_non_acs_data = function(
         quiet = TRUE)
       
       result = result3 }
-  #}
+  }
   
   if (dataset_name == "h_and_t") {
     result = read_csv(file.path(base_path, "Data/htaindex2022_data_tracts_06.csv")) %>%
@@ -210,7 +204,7 @@ get_non_acs_data = function(
       st_make_valid() %>%
       st_transform(crs = 4326) %>%
       st_filter(tracts_sf) %>%
-      transmute(
+      mutate(
         hla_total_vote_count = V3_LOS_A_4,
         hla_affirmative_vote_count = V3_LOS_A_2,
         hla_affirmative_vote_share = V3_LOS_A_5) }

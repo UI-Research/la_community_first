@@ -156,12 +156,18 @@ streets_sf = tribble(
   # "I-10 Highway", 34.02963863308693, -118.2562396832706, 330, 
   
   #### SaMo Locations ####
-  "Wilshire Blvd", 34.06683213656107, -118.42883208040895, 30, boulevard,
-  "I-405 Highway", 34.062111891101544, -118.45732644292302, 300, boulevard,
-  "I-10 Highway", 34.03178241375306, -118.42224986808957,330, boulevard,
-  "San Vicente Blvd", 34.05190061515859, -118.47460501575662, 30, boulevard,
-  "Santa Monica Blvd", 34.033194769667645, -118.4743223448754, 50, boulevard,
-  "Colorado Ave", 34.03062380737115, -118.47117687859794, 50, boulevard
+  "Wilshire Blvd", 34.03599619998233, -118.47751443335834, 46, boulevard,
+  "I-405 Highway", 34.062111891101544, -118.45732644292302, 306, boulevard,
+  "I-10 Highway", 34.02836949394677, -118.44887737870634, 10, boulevard,
+  "San Vicente Blvd", 34.05190061515859, -118.47460501575662, 18, boulevard,
+  "Santa Monica Blvd", 34.033194769667645, -118.4743223448754, 46, boulevard,
+  "Colorado Ave", 34.03062380737115, -118.47117687859794, 46, boulevard,
+  #"Arizona Ave", 34.03464128056424, -118.47590358425937, 47, boulevard,
+  "Ohio Ave", 34.04930514322892, -118.4485050408507, 41, boulevard,
+  "Westwood Blvd", 34.05404853759078, -118.44074349431331, 306, boulevard,
+  "Bundy Dr", 34.03743794455129, -118.45977952761376, 320, boulevard
+
+  
   
   ) %>%
   st_as_sf(
@@ -201,7 +207,7 @@ locations_sf = tribble(
   "UCLA", 34.06993161179595, -118.44678711417353, boulevard,
   "West LA VA Medical Center", 34.05247315379336, -118.45295447084322, boulevard,
   "University High School", 34.04561998108219, -118.46096278532994, boulevard,
-  "Beverly Hills High School", 34.061242565789044, -118.41023652161807, boulevard,
+  #"Beverly Hills High School", 34.061242565789044, -118.41023652161807, boulevard,
   "Stoner Park", 34.03820077425739, -118.4539619445094, boulevard,
   "The Getty", 34.07715346855072, -118.47442918126463, boulevard,
   "Santa Monica Airport", 34.016609712728666, -118.45033595223472, boulevard
@@ -289,24 +295,33 @@ h_and_t_sf = boulevard_tracts %>%
     get_non_acs_data(
       base_path = file_path,
       dataset_name = "h_and_t",
-      area = boulevard))
+      area = boulevard)) %>% 
+  filter(str_starts(GEOID, c("0603726|0603798")))
 
 crash_sf = get_non_acs_data(
   base_path = file_path,
   dataset_name = "crash",
   area = boulevard) %>% 
-  filter(crash_type != "Other vehicle severe crash")
+  mutate(crash_type = factor(crash_type, levels = c("Pedestrian involved severe crash",
+                                                    "Bicyclist involved severe crash",
+                                                    "Other vehicle severe crash")))
+  #filter(crash_type != "Other vehicle severe crash")
 
 crash_full_sf = get_non_acs_data(
   base_path = file_path,
   dataset_name = "crash_full",
-  area = boulevard) %>% 
-  filter(crash_type != "Other vehicle severe crash")
+  area = boulevard) %>%
+    mutate(crash_type = factor(crash_type, levels = c("Pedestrian involved severe crash",
+                                                    "Bicyclist involved severe crash",
+                                                    "Other vehicle severe crash")))
+  #filter(crash_type != "Other vehicle severe crash")
 
 hla_sf = get_non_acs_data(
   base_path = file_path,
   dataset_name = "hla",
-  area = boulevard)
+  area = boulevard) %>%
+  filter(!grepl("^625", Precinct))
+
 ```
 
 Non-ACS maps
@@ -372,8 +387,8 @@ plot_boulevard_map(
   streets_sf = streets_sf,
   xpad = 3000,
   ypad = 1500,
-  scale_bar_position = 0.68,
-  compass_position = 0.65,
+  scale_bar_position = 0.70,
+  compass_position = 0.67,
   height = 4.5,
   width = 6.5,
   projection = projection,
@@ -478,7 +493,7 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  xpad = 2000,
+  xpad = 000,
   ypad = 1500,
   height = 4.5,
   width = 6.5,
@@ -494,8 +509,8 @@ plot_boulevard_map(
 
 
   bbox <- st_bbox(boulevard_corridor)
-  xpad = 0.015
-  ypad = 0.015
+  xpad = 0.028
+  ypad = 0.02
     
   ## Add padding to x or y direction
   bbox["xmin"] <- bbox["xmin"] - xpad
@@ -595,22 +610,26 @@ acs_tracts_boulevard %>%
   ## table on foreign-born persons by country
   select(GEOID, matches("B05006_")) %>%
   pivot_longer(-GEOID, names_to = "variable", values_to = "estimate") %>% 
-  # mutate(
-  #   country = case_when(
-  #     variable == "B05006_001" ~ "Table universe",
-  #     variable == "B05006_158" ~ "Guatemala",
-  #     variable == "B05006_157" ~ "El Salvador",
-  #     variable == "B05006_160" ~ "Mexico",
-  #     variable == "B05006_054" ~ "Korea",
-  #     variable == "B05006_049" ~ "China",
-  #     variable == "B05006_074" ~ "Phillipines",
-  #     variable == "B05006_159" ~ "Honduras",
-  #     TRUE ~ NA_character_)) %>%
+  mutate(
+    country = case_when(
+      variable == "B05006_001" ~ "Table universe",
+      variable == "B05006_158" ~ "Guatemala",
+      variable == "B05006_157" ~ "El Salvador",
+      variable == "B05006_160" ~ "Mexico",
+      variable == "B05006_054" ~ "Korea",
+      variable == "B05006_049" ~ "China",
+      variable == "B05006_074" ~ "Phillipines",
+      variable == "B05006_159" ~ "Honduras",
+      variable == "B05006_080" ~ "Armenia",
+      variable == "B05006_061" ~ "Iran",
+      variable == "B05006_050" ~ "China",
+     
+      TRUE ~ NA_character_)) %>%
   summarize(
-    .by = variable, 
+    .by = country, 
     estimate = sum(estimate, na.rm = TRUE)) %>%
-  #filter(!is.na(country), estimate > 1000) %>%
-  arrange(desc(estimate)) #%>%
+  filter(!is.na(country), estimate > 1000) %>%
+  arrange(desc(estimate)) %>%
   mutate(share = round((estimate / estimate[country == "Table universe"]) * 100, digits = 0))
 ```
 
@@ -634,9 +653,11 @@ disability_counts <- acs_tracts_boulevard |>
          self_care_difficulty = rowSums(across(starts_with("B18106"))),
          independent_living_difficulty = rowSums(across(starts_with("B18107"))),
          ) |>
-  select(ends_with(c("_difficulty", "disability"))) |>
+  select(ends_with(c("_difficulty"))) |>
   summarise(across(everything(), sum, na.rm = TRUE)) |>
-  gather(key = "Disability", value = "Count")
+  gather(key = "Disability", value = "Count") |>
+  mutate(percent = Count/ sum(6015) * 100,
+         label = paste0(scales::comma(Count), " (", round(percent, 1), "%)"))
 
 
 
@@ -645,13 +666,13 @@ disability_counts <- acs_tracts_boulevard |>
  disability_plot <- ggplot(disability_counts, aes(x = Disability, y = Count, fill = Disability)) +
   geom_col() +
   geom_text(
-      aes(label = scales::comma(Count)),
+      aes(label = label),
       position = position_dodge(width = 0.8),
       vjust = -.5,
       color = "black",
       size = 8,
       size.unit = "pt") +
-    scale_fill_manual(values = c("#00447C", "#A7C539", "#F2B705", "#780032", "#e66a8c","#D9D9D9", "black"), ) +
+    scale_fill_manual(values = c("#00447C", "#A7C539", "#F2B705", "#780032", "#e66a8c","#D9D9D9", "black")) +
     scale_x_discrete(labels = c(
                                 #"disability" = "Any Disabilty ",
                                 "ambulatory_difficulty" = "Ambulatory", 
@@ -753,20 +774,20 @@ hla_all_city <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp")) %
 
 hla_boulevard <- hla_sf %>% 
   st_drop_geometry() %>%
-  summarise(across(everything(), sum, na.rm = T)) %>% 
+  summarise(across(starts_with("hla"), sum, na.rm = T)) %>% 
   mutate(hla_affirmative_vote_share = hla_affirmative_vote_count/hla_total_vote_count,
-         area = "MLK East")
+         area = "Santa Monica to Westwood")
 
 hla_combined <- bind_rows(hla_boulevard, hla_all_city) %>%
   select(area, hla_affirmative_vote_share) %>% 
   pivot_longer(cols = c(hla_affirmative_vote_share)) %>% 
   mutate(variable = "Share of affirmative votes",
-         area = factor(area, levels = c("MLK East", "LA City")))
+         area = factor(area, levels = c("Santa Monica to Westwood", "LA City")))
 
 
 hla_bar <- ggplot(hla_combined) +
   geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
-  scale_fill_manual(values = c("LA City" = "#00447C", "MLK East" = "#A7C539")) +
+  scale_fill_manual(values = c("LA City" = "#00447C", "Santa Monica to Westwood" = "#A7C539")) +
   geom_text(aes(x = variable, y = value, label =scales::percent(value, accuracy = 1), group = area),
             position = position_dodge(width = 0.8),
             vjust = -.5,
@@ -788,6 +809,192 @@ ggsave(filename = "hla_bar.png",
        height = 3.6,
        width = 6.84,
        dpi = 1000)
+
+
+hla_supplement <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+  filter(TYPE == "TOTAL") %>% 
+  summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
+  mutate(total_eligible_pop = sum(acs_city_la$B29001_001),
+         percent_registered = REGISTRATION/total_eligible_pop,
+         percent_reg_voted = `BALLOTS CAST`/ REGISTRATION,
+         yes_share = YES/`BALLOTS CAST`,
+         area = "LA City"
+           )
+
+hla_supplement_boulevard <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+  filter(TYPE == "TOTAL" & PRECINCT %in% hla_sf$Precinct) %>%
+  summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
+  mutate(total_eligible_pop = sum(acs_tracts_boulevard$B29001_001),
+         percent_registered = REGISTRATION/total_eligible_pop,
+         percent_reg_voted = `BALLOTS CAST`/ REGISTRATION,
+         yes_share = YES/`BALLOTS CAST`,
+         area = "Santa Monica to Westwood"
+           )
+
+hla_supplement_combined <-  bind_rows(hla_supplement, hla_supplement_boulevard) %>% 
+  select(area, percent_registered, percent_reg_voted) %>% 
+  pivot_longer(cols = c(percent_registered, percent_reg_voted)) %>% 
+  mutate(variable = case_when(
+    name == "percent_registered" ~ "Percent of eligbile residents registered to vote",
+    name == "percent_reg_voted" ~ "Eligible voter participation" ),
+    variable = factor(variable, levels = c("Percent of eligbile residents registered to vote", "Eligible voter participation" )),
+    area = factor(area, levels = c("Santa Monica to Westwood", "LA City")) )
+
+
+hla_participation_bar <- ggplot(hla_supplement_combined) +
+  geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
+  scale_fill_manual(values = c("LA City" = "#00447C", "Santa Monica to Westwood" = "#A7C539")) +
+  geom_text(aes(x = variable, y = value, label =scales::percent(value, accuracy = 1), group = area),
+            position = position_dodge(width = 0.8),
+            vjust = -.5,
+            color = "black",
+            size = 8,
+            size.unit = "pt") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_urbn_print() +
+    labs(x = "", y = "") +
+    theme(
+      panel.grid.major.x = element_blank(),
+      text = element_text(family = "Arial", color = "black"))
+
+hla_participation_bar
+
+ggsave(filename = "hla_participation_bar.png", 
+       plot = hla_participation_bar, 
+       path = file.path(file_path, boulevard, "Outputs"),
+       height = 3.6,
+       width = 6.84,
+       dpi = 1000)
+
+
+
+
+commute_mode_age_city <- acs_city_la |>
+  st_drop_geometry() |>
+  select(B08101_010, B08101_011, B08101_012, B08101_013, B08101_014, B08101_015, B08101_016,
+         B08101_018, B08101_019, B08101_020, B08101_021, B08101_022, B08101_023, B08101_024,
+         B08101_026, B08101_027, B08101_028, B08101_029, B08101_030, B08101_031, B08101_032,
+         B08101_034, B08101_035, B08101_036, B08101_037, B08101_038, B08101_039, B08101_040,
+         B08101_042, B08101_043, B08101_044, B08101_045, B08101_046, B08101_047, B08101_048,
+         B08101_050, B08101_051, B08101_052, B08101_053, B08101_054, B08101_055, B08101_056
+         ) |>
+  pivot_longer(cols = everything()) |>
+  mutate(age = case_when(
+    name %in% c("B08101_010", "B08101_018", "B08101_026", "B08101_034", "B08101_042", "B08101_050",
+                "B08101_011", "B08101_019", "B08101_027", "B08101_035", "B08101_043", "B08101_051") ~ "16-24",
+    name %in% c("B08101_012", "B08101_020", "B08101_028", "B08101_036", "B08101_044", "B08101_052") ~ "25-44",
+    name %in% c("B08101_013", "B08101_021", "B08101_029", "B08101_037", "B08101_045", "B08101_053",
+                "B08101_014", "B08101_022", "B08101_030", "B08101_038", "B08101_046", "B08101_054") ~ "45-59",
+    name %in% c("B08101_015", "B08101_023", "B08101_031", "B08101_039", "B08101_047", "B08101_055",
+                "B08101_016", "B08101_024", "B08101_032", "B08101_040", "B08101_048", "B08101_056") ~ "60+"),
+    mode = case_when(
+      name %in% c("B08101_010", "B08101_011", "B08101_012", "B08101_013", "B08101_014", "B08101_015", "B08101_016") ~ "Car, truck, or van",
+      name %in% c("B08101_018", "B08101_019", "B08101_020", "B08101_021", "B08101_022", "B08101_023", "B08101_024") ~ "Carpool",
+      name %in% c("B08101_026", "B08101_027", "B08101_028", "B08101_029", "B08101_030", "B08101_031", "B08101_032") ~ "Public transportation",
+      name %in% c("B08101_034", "B08101_035", "B08101_036", "B08101_037", "B08101_038", "B08101_039", "B08101_040") ~ "Walk",
+      name %in% c("B08101_042", "B08101_043", "B08101_044", "B08101_045", "B08101_046", "B08101_047", "B08101_048") ~ "Taxicab, motorcycle, bicycle, or other",
+      name %in% c("B08101_050", "B08101_051", "B08101_052", "B08101_053", "B08101_054", "B08101_055", "B08101_056") ~ "Worked from home"
+    )
+  ) |>
+  group_by(age, mode) |>
+  summarise(count = sum(value)) |>
+  group_by(age) |>
+  mutate(age_total = sum(count)) |>
+  ungroup() |>
+  mutate(percent = count/age_total)
+
+
+commute_age_mode_bar <- ggplot(commute_mode_age_city) +
+  geom_col(aes(x = age, y = percent, fill = mode), position = position_dodge(width = 0.8)) + 
+  scale_fill_manual(values = c("#00447C", "#A7C539", "#F2B705", "#780032", "#e66a8c","#D9D9D9")) +
+  geom_text(aes(x = age, y = percent, label =scales::percent(percent, accuracy = 1), group = mode),
+            position = position_dodge(width = 0.8),
+            vjust = -.5,
+            color = "black",
+            size = 8,
+            size.unit = "pt") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_urbn_print() +
+    labs(x = "", y = "") +
+    theme(
+      panel.grid.major.x = element_blank(),
+      text = element_text(family = "Arial", color = "black"))
+
+
+  
+
+commute_mode_age_boulevard <- acs_tracts_boulevard |>
+  st_drop_geometry() |>
+  select(B08101_010, B08101_011, B08101_012, B08101_013, B08101_014, B08101_015, B08101_016,
+         B08101_018, B08101_019, B08101_020, B08101_021, B08101_022, B08101_023, B08101_024,
+         B08101_026, B08101_027, B08101_028, B08101_029, B08101_030, B08101_031, B08101_032,
+         B08101_034, B08101_035, B08101_036, B08101_037, B08101_038, B08101_039, B08101_040,
+         B08101_042, B08101_043, B08101_044, B08101_045, B08101_046, B08101_047, B08101_048,
+         B08101_050, B08101_051, B08101_052, B08101_053, B08101_054, B08101_055, B08101_056
+         ) |>
+  summarise(across(everything(), sum)) |>
+  pivot_longer(cols = everything()) |>
+  mutate(age = case_when(
+    name %in% c("B08101_010", "B08101_018", "B08101_026", "B08101_034", "B08101_042", "B08101_050",
+                "B08101_011", "B08101_019", "B08101_027", "B08101_035", "B08101_043", "B08101_051") ~ "16-24",
+    name %in% c("B08101_012", "B08101_020", "B08101_028", "B08101_036", "B08101_044", "B08101_052") ~ "25-44",
+    name %in% c("B08101_013", "B08101_021", "B08101_029", "B08101_037", "B08101_045", "B08101_053",
+                "B08101_014", "B08101_022", "B08101_030", "B08101_038", "B08101_046", "B08101_054") ~ "45-59",
+    name %in% c("B08101_015", "B08101_023", "B08101_031", "B08101_039", "B08101_047", "B08101_055",
+                "B08101_016", "B08101_024", "B08101_032", "B08101_040", "B08101_048", "B08101_056") ~ "60+"),
+    mode = case_when(
+      name %in% c("B08101_010", "B08101_011", "B08101_012", "B08101_013", "B08101_014", "B08101_015", "B08101_016") ~ "Car, truck, or van",
+      name %in% c("B08101_018", "B08101_019", "B08101_020", "B08101_021", "B08101_022", "B08101_023", "B08101_024") ~ "Carpool",
+      name %in% c("B08101_026", "B08101_027", "B08101_028", "B08101_029", "B08101_030", "B08101_031", "B08101_032") ~ "Public transportation",
+      name %in% c("B08101_034", "B08101_035", "B08101_036", "B08101_037", "B08101_038", "B08101_039", "B08101_040") ~ "Walk",
+      name %in% c("B08101_042", "B08101_043", "B08101_044", "B08101_045", "B08101_046", "B08101_047", "B08101_048") ~ "Taxicab, motorcycle, bicycle, or other",
+      name %in% c("B08101_050", "B08101_051", "B08101_052", "B08101_053", "B08101_054", "B08101_055", "B08101_056") ~ "Worked from home"
+    )
+  ) |>
+  group_by(age, mode) |>
+  summarise(count = sum(value)) |>
+  group_by(age) |>
+  mutate(age_total = sum(count)) |>
+  ungroup() |>
+  mutate(percent = count/age_total)
+
+
+
+commute_age_mode_area <- ggplot(commute_mode_age_boulevard) +
+  geom_col(aes(x = age, y = percent, fill = mode), position = position_dodge(width = 0.8)) + 
+  scale_fill_manual(values = c("#00447C", "#A7C539", "#F2B705", "#780032", "#e66a8c","#D9D9D9")) +
+  geom_text(aes(x = age, y = percent, label =scales::percent(percent, accuracy = 1), group = mode),
+            position = position_dodge(width = 0.8),
+            vjust = -.5,
+            color = "black",
+            size = 8,
+            size.unit = "pt") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_urbn_print() +
+    labs(x = "", y = "") +
+    theme(
+      panel.grid.major.x = element_blank(),
+      text = element_text(family = "Arial", color = "black"),
+      legend.position = "none")
+
+
+commute_age_mode_bar
+commute_age_mode_area
+
+ggsave(filename = "city_commute_age_mode_bar.png", 
+       plot = commute_age_mode_bar, 
+       path = file.path(file_path, boulevard, "Outputs"),
+       height = 4.6,
+       width = 6.84,
+       dpi = 2000)
+
+ggsave(filename = "area_commute_age_mode_bar.png", 
+       plot = commute_age_mode_area, 
+       path = file.path(file_path, boulevard, "Outputs"),
+       height = 4.2,
+       width = 6.84,
+       dpi = 2000)
+
 ```
 
 ```{r calculating counts}
@@ -843,6 +1050,11 @@ result2 = result1 %>%
                 "Single-family Residential", "Multi-family Residential", "Public",
                 "Agricultural or Open Space", "Commercial or Industrial", 
                 "Highways or Parking")))
+
+
+
+
+sum(acs_tracts_boulevard$B14007_017, acs_tracts_boulevard$B14007_018) / sum(acs_tracts_boulevard$B14007_001)
 
 
 
