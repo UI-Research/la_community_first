@@ -33,7 +33,7 @@ get_acs_data <- function(
   tables <- c("B01001", "B03002", "B05006", "B18101", "B19013", "B17001", "B23001", 
               "B11003", "B18102", "B18103", "B18105", "B23022", "B28002", "B28001", 
               "B25003", "B16004", "C16001", "B25070", "B25092", "B25091", "B25044", 
-              "B08301", "B08303", "B25071", "B19001", "B08134") %>% unique()
+              "B08301", "B08303", "B25071", "B19001", "B08134", "B08134") %>% unique()
 
   # Define a function to retrieve and clean each ACS table
   get_table <- function(tbl) {
