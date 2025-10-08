@@ -277,6 +277,14 @@ plot_comparison_charts = function(
   
   employment_bar_order <- c("Employed", "Unemployed", "Not in labor force")
   
+  
+  ####----Veteran population----####
+  veteran_vars <- list(
+    veteran = c("B21001_002"))
+  veteran_labels <- c(
+    "share_veteran"  = "Veteran")
+  veteran_bar_order <- c("Veteran")
+  
   ####----Plotting Variables Iteratively----####
   plot_metadata = tibble(
     var_list = str_c(constructs, "_vars"),

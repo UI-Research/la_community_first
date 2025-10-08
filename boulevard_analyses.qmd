@@ -4,7 +4,7 @@ library(sf)
 library(tmap)
 library(here)
 library(osmdata)
-library(tidylog)
+library(ggpattern)
 
 source(here("scripts", "get_acs_data.R"))
 source(here("scripts", "plot_utility_functions.R"))
@@ -53,7 +53,7 @@ Plotting comparison charts
 ```{r, fig.width = 6.5, fig.height = 2.5}
 color_palette = c(
   "LA City" = "#00447c",
-  "Hoover" = "#A7c539")
+  "Ohio Ave" = "#A7c539")
 
 plot_metadata = tribble(
   ~constructs, ~denominators,
@@ -70,13 +70,14 @@ plot_metadata = tribble(
   "tenure", "B25003_001",
   "rent_burden", "rent_burden_denominator",
   "school", "B14007_001",
-  "foreign_born", "B01001_001"
+  "foreign_born", "B01001_001",
+  "veteran", "B21001_001"
   )
 
 comparison_charts = plot_comparison_charts(
   df_boulevard = acs_tracts_boulevard, 
   df_city = acs_city_la,
-  boulevard_name = "Hoover",
+  boulevard_name = "Ohio Ave",
   color = color_palette,
   constructs = plot_metadata$constructs,
   denominators = plot_metadata$denominators,
@@ -156,16 +157,22 @@ streets_sf = tribble(
   # "I-10 Highway", 34.02963863308693, -118.2562396832706, 330, 
   
   #### SaMo Locations ####
-  # "Wilshire Blvd", 34.03599619998233, -118.47751443335834, 46, boulevard,
-  # "I-405 Highway", 34.062111891101544, -118.45732644292302, 306, boulevard,
-  # "I-10 Highway", 34.02836949394677, -118.44887737870634, 10, boulevard,
-  # "San Vicente Blvd", 34.05190061515859, -118.47460501575662, 18, boulevard,
-  # "Santa Monica Blvd", 34.033194769667645, -118.4743223448754, 46, boulevard,
-  # "Colorado Ave", 34.03062380737115, -118.47117687859794, 46, boulevard,
-  # #"Arizona Ave", 34.03464128056424, -118.47590358425937, 47, boulevard,
-  # "Ohio Ave", 34.04930514322892, -118.4485050408507, 41, boulevard,
-  # "Westwood Blvd", 34.05404853759078, -118.44074349431331, 306, boulevard,
-  # "Bundy Dr", 34.03743794455129, -118.45977952761376, 320, boulevard
+  "Wilshire Blvd", 34.04700814212168, -118.46389314403606, 46, boulevard,
+  "I-405 Highway", 34.062111891101544, -118.45732644292302, 306, boulevard,
+  "I-10 Highway", 34.02836949394677, -118.44887737870634, 10, boulevard,
+  "San Vicente Blvd", 34.05190061515859, -118.47460501575662, 16, boulevard,
+ # "Santa Monica Blvd", 34.04581102898062, -118.45063133872866, 15, boulevard,
+  #"Colorado Ave", 34.03062380737115, -118.47117687859794, 46, boulevard,
+  #"Arizona Ave", 34.03464128056424, -118.47590358425937, 47, boulevard,
+  "Ohio Ave", 34.04930514322892, -118.4485050408507, 41, boulevard,
+  # "Texas Ave", 34.04151992820824, -118.46768450691522, 46, boulevard,
+  # "Rochester Ave", 34.043276609278145, -118.4629094648567, 38, boulevard,
+  # "S Saltair Ave", 34.040053333366586, -118.46143586068403, 305, boulevard,
+  # "S Westgate Ave", 34.04132135746055, -118.45833072047674, 305, boulevard,
+  "Westwood Blvd", 34.05404853759078, -118.44074349431331, 306, boulevard,
+  "Centinela Ave", 34.03795663940399, -118.46699574515026, 315, boulevard,
+  "Bundy Dr", 34.03239046333756, -118.4537232564416, 317, boulevard,
+#  "City of Santa Monica\n(outside of LA City Jurisdiction)", 34.02879459572271, -118.47699596358547, 0, boulevard
 
   
   
@@ -204,13 +211,13 @@ locations_sf = tribble(
   # "University of Southern California", 34.02250540388042, -118.28501499219414, boulevard
   
   #### SaMo Locations ####
-  # "UCLA", 34.06993161179595, -118.44678711417353, boulevard,
-  # "West LA VA Medical Center", 34.05247315379336, -118.45295447084322, boulevard,
-  # "University High School", 34.04561998108219, -118.46096278532994, boulevard,
-  # #"Beverly Hills High School", 34.061242565789044, -118.41023652161807, boulevard,
-  # "Stoner Park", 34.03820077425739, -118.4539619445094, boulevard,
-  # "The Getty", 34.07715346855072, -118.47442918126463, boulevard,
-  # "Santa Monica Airport", 34.016609712728666, -118.45033595223472, boulevard
+  "UCLA", 34.064964656862095, -118.44536560778212, boulevard,
+  "West LA VA Medical Center", 34.05247315379336, -118.45295447084322, boulevard,
+  #"University High School", 34.04561998108219, -118.46096278532994, boulevard,
+  #"Beverly Hills High School", 34.061242565789044, -118.41023652161807, boulevard,
+  #"Stoner Park", 34.03820077425739, -118.4539619445094, boulevard,
+  #"The Getty", 34.07715346855072, -118.47442918126463, boulevard,
+  #"Santa Monica Airport", 34.016609712728666, -118.45033595223472, boulevard
   
   ) %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326) #%>%
@@ -222,12 +229,115 @@ boulevard_corridor <- st_read(file.path(file_path, boulevard, "maps", paste0(bou
   st_transform(4326) 
 ```
 
+
+study area map
+```{r}
+
+samo_limits <- st_read(file.path(file_path, boulevard, "maps", "City_Boundary.shp")) %>%
+  st_transform(4326) 
+
+  bbox <- st_bbox(boulevard_corridor)
+  xpad = 0.02
+  ypad = 0.014
+    
+  ## Add padding to x or y direction
+  bbox["xmin"] <- bbox["xmin"] - xpad
+  bbox["xmax"] <- bbox["xmax"] + xpad
+  bbox["ymin"] <- bbox["ymin"] - ypad
+  bbox["ymax"] <- bbox["ymax"] + ypad
+  
+  
+map2 = 
+    ## study area outline
+    tm_shape(boulevard_corridor %>% st_buffer(825), bbox = bbox, is.main = TRUE, unit = "mi") +
+      tm_borders(col = "#9e400f", lwd = 2, lty = "dashed") +
+    ## the boulevard
+    tm_shape(boulevard_corridor, bbox = bbox) +
+      tm_lines(col = "#F4AB0B", lwd = 4) +
+    tm_add_legend(
+      type = "lines",
+      col = c("#F4AB0B", "#9e400f"),
+      lty = c("solid", "dashed"),
+      lwd = c(2, 2),
+      labels = c("Project Site", "Study Area"),
+      frame.lwd = 0,
+      position = tm_pos_on_top("left", "top"),
+      bg.color = "white",    
+      bg.alpha = 0.9,
+      title.size = .8,        
+      title.color = "black",  
+      text.color = "black",   
+      title.fontface = "bold"
+    ) +
+    tm_shape(samo_limits) +
+      tm_polygons(fill = "darkgrey", fill_alpha = .5, col = "black", lwd = .5) +
+    tm_shape(
+      locations_sf %>% mutate(name = str_wrap(name, 20)), bbox = bbox) +
+      tm_dots(
+        col = "black",
+        size = 0.4) +
+      tm_text(
+        "name",
+        size = 0.6,
+        col = "black",
+        options = opt_tm_text(just = "center"),
+        ymod = 1.5,
+        fontface = "bold",
+        fontfamily = "Calibri") +
+    tm_shape(
+      streets_sf, bbox = bbox) +
+      tm_text(
+        "name",
+        size = 0.6,
+        col = "black",
+        angle = "orientation",
+        options = opt_tm_text(just = "center"),
+        fontface = "bold",
+        fontfamily = "Calibri") +
+    ## a compass
+    tm_compass(
+      type = "arrow", 
+      size = 1,
+      #group_id = "bottom_right",
+      position = c(.70, .08),
+      stack = "horizontal"
+      ) +
+    ## a scalebar
+    tm_scalebar(
+      breaks = c(0, .5, 1),
+      #group_id = "bottom_right",
+      position = c(.72, .07),
+      text.size = .7,
+      stack = "horizontal"
+      ) +
+    ## the legend
+    tm_layout(
+      legend.position = tm_pos_on_top("left", "bottom"),
+      frame = FALSE,
+      legend.frame = FALSE,
+      #legend.width = 8,
+      legend.bg.color = "white",    
+      legend.bg.alpha = 0.9,
+      legend.title.size = .8,        
+      legend.title.color = "black",  
+      legend.text.color = "black",   
+      legend.title.fontface = "bold") +
+    ## the basemap
+    tm_basemap("Esri.WorldGrayCanvas")
+
+map2
+
+tmap_save(map2, file = here(file_path, boulevard, "Outputs", "study_area_map.png"), height = 5, width = 6.75, dpi = 2000)
+
+
+```
+
+
+
+
 Plot chloropleths
 
 ```{r, fig.width = 6.5, fig.height = 4.5}
-# "share_hearing_diff", "Disability, Hearing",
-# "share_vision_diff", "Disability, Vision",
-# "share_ambulatory_diff", "Disability, Ambulatory",
 
 ## create plot metadata as a tribble with `fill_column` and `legend_title
 plot_metadata = tribble(
@@ -258,10 +368,11 @@ plot_acs_maps(
   legend_title = plot_metadata$legend_title,
   xpad = 4500,
   ypad = 3750,
+  bins = 4,
   scale_bar_position = .74,
   compass_position = .72, 
   height = 4.5,
-  width = 6.5,
+  width = 6,
   save = TRUE,
   outpath = file.path(file_path, boulevard, "Outputs"),
   file_extension = ".png")
@@ -491,7 +602,7 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  xpad = 000,
+  xpad = 3000,
   ypad = 1500,
   height = 4.5,
   width = 6.5,
@@ -504,98 +615,6 @@ plot_boulevard_map(
   file_extension = ".png",
   outpath = file.path(file_path, boulevard, "Outputs"))
 
-
-
-  bbox <- st_bbox(boulevard_corridor)
-  xpad = 0.028
-  ypad = 0.02
-    
-  ## Add padding to x or y direction
-  bbox["xmin"] <- bbox["xmin"] - xpad
-  bbox["xmax"] <- bbox["xmax"] + xpad
-  bbox["ymin"] <- bbox["ymin"] - ypad
-  bbox["ymax"] <- bbox["ymax"] + ypad
-  
-  
-map2 = 
-    ## study area outline
-    tm_shape(boulevard_corridor %>% st_buffer(825), bbox = bbox, is.main = TRUE, unit = "mi") +
-      tm_borders(col = "#9e400f", lwd = 2, lty = "dashed") +
-    ## the boulevard
-    tm_shape(boulevard_corridor, bbox = bbox) +
-      tm_lines(col = "#F4AB0B", lwd = 4) +
-    tm_add_legend(
-      type = "lines",
-      col = c("#F4AB0B", "#9e400f"),
-      lty = c("solid", "dashed"),
-      lwd = c(2, 2),
-      labels = c("Project Site", "Study Area"),
-      frame.lwd = 0,
-      position = tm_pos_on_top("left", "top"),
-      bg.color = "white",    
-      bg.alpha = 0.9,
-      title.size = .8,        
-      title.color = "black",  
-      text.color = "black",   
-      title.fontface = "bold"
-    ) +
-    tm_shape(
-      locations_sf %>% mutate(name = str_wrap(name, 20)), bbox = bbox) +
-      tm_dots(
-        col = "black",
-        size = 0.4) +
-      tm_text(
-        "name",
-        size = 0.6,
-        col = "black",
-        options = opt_tm_text(just = "center"),
-        ymod = 1.5,
-        fontface = "bold",
-        fontfamily = "Calibri") +
-    tm_shape(
-      streets_sf, bbox = bbox) +
-      tm_text(
-        "name",
-        size = 0.6,
-        col = "black",
-        angle = "orientation",
-        options = opt_tm_text(just = "center"),
-        fontface = "bold",
-        fontfamily = "Calibri") +
-    ## a compass
-    tm_compass(
-      type = "arrow", 
-      size = 1,
-      #group_id = "bottom_right",
-      position = c(.70, .08),
-      stack = "horizontal"
-      ) +
-    ## a scalebar
-    tm_scalebar(
-      breaks = c(0, .5, 1),
-      #group_id = "bottom_right",
-      position = c(.72, .07),
-      text.size = .7,
-      stack = "horizontal"
-      ) +
-    ## the legend
-    tm_layout(
-      legend.position = tm_pos_on_top("left", "bottom"),
-      frame = FALSE,
-      legend.frame = FALSE,
-      #legend.width = 8,
-      legend.bg.color = "white",    
-      legend.bg.alpha = 0.9,
-      legend.title.size = .8,        
-      legend.title.color = "black",  
-      legend.text.color = "black",   
-      legend.title.fontface = "bold") +
-    ## the basemap
-    tm_basemap("Esri.WorldGrayCanvas")
-
-map2
-
-tmap_save(map2, file = here(file_path, boulevard, "Outputs", "study_area_map.png"), height = 5, width = 7, dpi = 2000)
 
 
 ```
@@ -621,13 +640,13 @@ acs_tracts_boulevard %>%
       variable == "B05006_080" ~ "Armenia",
       variable == "B05006_061" ~ "Iran",
       variable == "B05006_050" ~ "China",
-     
+
       TRUE ~ NA_character_)) %>%
   summarize(
-    .by = country, 
+    .by = variable, 
     estimate = sum(estimate, na.rm = TRUE)) %>%
-  filter(!is.na(country), estimate > 1000) %>%
-  arrange(desc(estimate)) %>%
+  #filter(!is.na(country), estimate > 1000) %>%
+  arrange(desc(estimate)) #%>%
   mutate(share = round((estimate / estimate[country == "Table universe"]) * 100, digits = 0))
 ```
 
@@ -775,13 +794,13 @@ hla_boulevard <- hla_sf %>%
   st_drop_geometry() %>%
   summarise(across(starts_with("hla"), sum, na.rm = T)) %>% 
   mutate(hla_affirmative_vote_share = hla_affirmative_vote_count/hla_total_vote_count,
-         area = "Santa Monica to Westwood")
+         area = "Ohio Ave")
 
 hla_combined <- bind_rows(hla_boulevard, hla_all_city) %>%
   select(area, hla_affirmative_vote_share) %>% 
   pivot_longer(cols = c(hla_affirmative_vote_share)) %>% 
   mutate(variable = "Share of affirmative votes",
-         area = factor(area, levels = c("Santa Monica to Westwood", "LA City")))
+         area = factor(area, levels = c("Ohio Ave", "LA City")))
 
 
 hla_supplement <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
@@ -834,7 +853,7 @@ hla_participation_bar <- ggplot(hla_supplement_combined) +
 
 hla_bar <- ggplot(hla_combined) +
   geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
-  scale_fill_manual(values = c("LA City" = "#00447C", "Santa Monica to Westwood" = "#A7C539")) +
+  scale_fill_manual(values = c("LA City" = "#00447C", "Ohio Ave" = "#A7C539")) +
   geom_text(aes(x = variable, y = value, label =scales::percent(value, accuracy = 1), group = area),
             position = position_dodge(width = 0.8),
             vjust = -.5,
@@ -876,7 +895,7 @@ hla_supplement_boulevard <- read_csv(file.path(file_path, "Data/Measure HLA Vote
          percent_registered = REGISTRATION/total_eligible_pop,
          percent_reg_voted = `BALLOTS CAST`/ REGISTRATION,
          yes_share = YES/`BALLOTS CAST`,
-         area = "Hoover"
+         area = "Ohio Ave"
            )
 
 hla_supplement_combined <-  bind_rows(hla_supplement, hla_supplement_boulevard) %>% 
@@ -886,12 +905,12 @@ hla_supplement_combined <-  bind_rows(hla_supplement, hla_supplement_boulevard) 
     name == "percent_registered" ~ "Percent of eligbile residents registered to vote",
     name == "percent_reg_voted" ~ "Eligible voter participation" ),
     variable = factor(variable, levels = c("Percent of eligbile residents registered to vote", "Eligible voter participation" )),
-    area = factor(area, levels = c("Hoover", "LA City")) )
+    area = factor(area, levels = c("Ohio Ave", "LA City")) )
 
 
 hla_participation_bar <- ggplot(hla_supplement_combined) +
   geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
-  scale_fill_manual(values = c("LA City" = "#00447C", "Hoover" = "#A7C539")) +
+  scale_fill_manual(values = c("LA City" = "#00447C", "Ohio Ave" = "#A7C539")) +
   geom_text(aes(x = variable, y = value, label =scales::percent(value, accuracy = 1), group = area),
             position = position_dodge(width = 0.8),
             vjust = -.5,
@@ -949,7 +968,8 @@ commute_mode_age_city <- acs_city_la |>
   group_by(age) |>
   mutate(age_total = sum(count)) |>
   ungroup() |>
-  mutate(percent = count/age_total)
+  mutate(percent = count/age_total,
+         area = "LA City")
 
 
 commute_age_mode_bar <- ggplot(commute_mode_age_city) +
@@ -1004,8 +1024,8 @@ commute_mode_age_boulevard <- acs_tracts_boulevard |>
   group_by(age) |>
   mutate(age_total = sum(count)) |>
   ungroup() |>
-  mutate(percent = count/age_total)
-
+  mutate(percent = count/age_total,
+         area = "Ohio Ave")
 
 
 commute_age_mode_area <- ggplot(commute_mode_age_boulevard) +
@@ -1042,6 +1062,79 @@ ggsave(filename = "area_commute_age_mode_bar.png",
        height = 4.2,
        width = 6.84,
        dpi = 2000)
+
+
+
+
+commute_age_combined <- commute_mode_age_boulevard %>% 
+  bind_rows(commute_mode_age_city) %>% 
+  mutate(area = factor(area, levels = c("Ohio Ave", "LA City")))
+
+commute_age_mode_combined <- ggplot(commute_age_combined) +
+  geom_col_pattern(aes(x = mode, y = percent, fill = mode, pattern = area), 
+                   position = position_dodge2(width = .9, preserve = "single", padding = 0.1),
+                   width = 1,
+                   pattern_fill = "white",
+                   pattern_color = "white",
+                   pattern_angle = 90,
+                   pattern_density = .3,
+                   pattern_spacing = 0.01,
+                   pattern_size = .01,
+                   pattern_key_scale_factor = 0.6
+                   ) + 
+  geom_text(aes(x = mode, y = percent, label = scales::percent(percent, accuracy = 1), pattern = area), 
+            vjust = -0.5, 
+            position = position_dodge2(width = .9, preserve = "single", padding = 0.1)) +
+  scale_pattern_manual(values = c("none", "crosshatch")) +
+  facet_wrap(~age) +
+  scale_fill_manual(values = c("#00447C", "#A7C539", "#F2B705", "#780032", "#e66a8c","black")) +
+
+  scale_x_discrete(expand = expansion(mult = c(.1, .1))) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_urbn_print() +
+   guides(
+    fill = guide_legend(
+      title = "Fill Color",
+      override.aes = list(pattern = "none"),
+      ncol = 2
+    ),
+    pattern = guide_legend(
+      override.aes = list(size = 0.5),
+      keyheight = unit(1, "lines")
+    )
+  ) +
+
+    theme(
+      panel.grid.major.x = element_blank(),
+      text = element_text(family = "Arial", color = "black"),
+    legend.position = "top",
+    legend.direction = "vertical",
+    legend.spacing.y = unit(8, "pt"),
+    legend.margin = margin(t = 10, b = 10),
+    #legend.key.size = unit(1, "lines"), 
+    legend.text = element_text(size = 12),
+    axis.text.x = element_blank()
+    ) +
+  labs(x = "", y = "") 
+
+
+commute_age_mode_combined
+
+ggsave(filename = "samo_combined_commute_age_mode_bar.png", 
+       plot = commute_age_mode_combined, 
+       path = file.path(file_path, boulevard, "Outputs"),
+       height = 9,
+       width = 8.5,
+       dpi = 2000)
+
+
+
+ancestry_counts <- acs_tracts_boulevard %>% 
+  st_drop_geometry() %>% 
+  select(starts_with("B04006")) %>%
+  select(ends_with(c("016", "048", "001"))) %>% 
+  colSums()
+
 
 ```
 
@@ -1105,6 +1198,9 @@ result2 = result1 %>%
 sum(acs_tracts_boulevard$B14007_017, acs_tracts_boulevard$B14007_018) / sum(acs_tracts_boulevard$B14007_001)
 
 
+##pop over 16 enrolled in school
+
+sum(acs_tracts_boulevard$B14007_015, acs_tracts_boulevard$B14007_016, acs_tracts_boulevard$B14007_017, acs_tracts_boulevard$B14007_018)/ sum(acs_tracts_boulevard$B23001_001)
 
 
 ```

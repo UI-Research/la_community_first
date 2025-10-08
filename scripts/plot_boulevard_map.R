@@ -31,7 +31,6 @@ library(tmap)
 #' @return A tmap object, which in turn can be decorated with additional tmap expressions
 
 
-
 plot_boulevard_map = function(
     sf, 
     boulevard_sf,
@@ -68,7 +67,6 @@ plot_boulevard_map = function(
   tracts_sf = tracts_sf %>% st_transform(projection)
   
 
-
   ## most legend aesthetics specified in `tm_layout()` below
   legend = tm_legend(
     title = legend_title %>% str_wrap(width = 25), 
@@ -87,8 +85,6 @@ plot_boulevard_map = function(
   bbox["ymin"] <- bbox["ymin"] - ypad
   bbox["ymax"] <- bbox["ymax"] + ypad
   
-
-  
   
   label_type = scales::percent
   if (!str_detect(fill_column, "share|B25071_001|t_ami")) label_type = scales::comma
@@ -96,6 +92,7 @@ plot_boulevard_map = function(
   
   if (map_type == "choropleth") {
     ## set the scale depending on the type of input data
+    
     scale = tm_scale_intervals(
       n = bins,
       style = "pretty",
