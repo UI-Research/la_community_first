@@ -25,10 +25,10 @@ options(
 Set a boulevard variable
 
 ```{r}
-boulevard = "samo"
-boulevard_tracts = file.path(file_path, boulevard, "maps", str_c(boulevard, "_tracts.shp")) %>%
-  st_read(quiet = TRUE) #%>% 
-  #st_set_crs(4326)
+boulevard = "hoover"
+boulevard_tracts = file.path(file_path, boulevard, "maps", str_c(boulevard, "_buffer_tracts.shp")) %>%
+  st_read(quiet = TRUE) %>% 
+  st_set_crs(4326)
 ```
 
 Obtaining ACS data
@@ -40,8 +40,7 @@ acs_tracts_la = get_acs_data(
     census_geography = "tract")
 
 acs_tracts_boulevard = acs_tracts_la %>%
-  filter(GEOID %in% boulevard_tracts$GEOID) %>% 
-  filter(str_starts(GEOID, c("0603726|0603798")))
+  filter(GEOID %in% boulevard_tracts$GEOID)
 
 acs_city_la = get_acs_data(
   file_path = file_path, 
@@ -128,20 +127,20 @@ streets_sf = tribble(
   # "Hoover St", 34.03191105597345, -118.28495893090334, 90, boulevard,
   # "Harbor Fwy", 34.05418379708543, -118.25980368140354, 55, boulevard
   
-  #### Hoover Locations ####
-  # "MLK Jr Blvd", 34.01114719258918, -118.26536648634915, 0, boulevard,
-  # "Vernon Ave", 34.003854692348405, -118.26536648634915, 0, boulevard,
-  # "Slauson Ave", 33.98932307117704, -118.26523319659992, 0, boulevard,
-  # "Florence Ave", 33.974733696872036, -118.25616655173909, 0, boulevard,
-  # "Manchester Ave", 33.960118221849065, -118.25607145690896, 0, boulevard,
-  # "Harbor Fwy", 33.982781626478186, -118.28060176708684, 270, boulevard,
-  # "Vermont Ave", 33.98235972870656, -118.29168835018301, 90, boulevard,
-  # "Normandie Ave", 33.98235972870656, -118.30030677623152, 90, boulevard,
-  # "Van Ness Ave", 33.983371941772745, -118.317750099191, 90, boulevard,
-  # "Crenshaw Blvd", 33.98297019442496, -118.33092846920148, 90, boulevard,
-  # "Main St", 33.982436755767004, -118.27400241679408, 270, boulevard,
-  # "Avalon Blvd", 33.98253230870111, -118.26521583140891, 270, boulevard,
-  # "Exposition Blvd", 34.018306424628975, -118.30579458465892, 0, boulevard
+  ### Hoover Locations ####
+  "MLK Jr Blvd", 34.01114719258918, -118.26536648634915, 0, boulevard,
+  "Vernon Ave", 34.003854692348405, -118.26536648634915, 0, boulevard,
+  "Slauson Ave", 33.98932307117704, -118.26523319659992, 0, boulevard,
+  "Florence Ave", 33.974733696872036, -118.25616655173909, 0, boulevard,
+  "Manchester Ave", 33.960118221849065, -118.25607145690896, 0, boulevard,
+  "Harbor Fwy", 33.982781626478186, -118.28060176708684, 270, boulevard,
+  "Vermont Ave", 33.98235972870656, -118.29168835018301, 90, boulevard,
+  "Normandie Ave", 33.98235972870656, -118.30030677623152, 90, boulevard,
+  "Van Ness Ave", 33.983371941772745, -118.317750099191, 90, boulevard,
+  "Crenshaw Blvd", 33.98297019442496, -118.33092846920148, 90, boulevard,
+  "Main St", 33.982436755767004, -118.27400241679408, 270, boulevard,
+  "Avalon Blvd", 33.98253230870111, -118.26521583140891, 270, boulevard,
+  "Exposition Blvd", 34.018306424628975, -118.30579458465892, 0, boulevard
   
   #### MLK East Locations ####
   # "Vernon Ave", 34.003854692348405, -118.26536648634915, 0, boulevard,
@@ -196,12 +195,12 @@ locations_sf = tribble(
   # "Normandie Recreation Center", 34.044543, -118.299765, boulevard
   
   #### Hoover Locations ####
-  # "Exposition Park", 34.01465919961802, -118.28749014509255, boulevard,
-  # "Harvard Park", 33.984241239976996, -118.30467543777576, boulevard,
-  # "Algin Sutton Recreation Center", 33.95628624786266, -118.28592530502922, boulevard,
-  # "Augustus Hawkins High School", 33.98689352636203, -118.28809332457882, boulevard,
-  # "Vermont Square Park", 34.00025327505379, -118.2972922149193, boulevard,
-  # "South Park Recreation Center", 33.997457650265595, -118.26774886549762, boulevard
+  "Exposition Park", 34.01465919961802, -118.28749014509255, boulevard,
+  "Harvard Park", 33.984241239976996, -118.30467543777576, boulevard,
+  "Algin Sutton Recreation Center", 33.95628624786266, -118.28592530502922, boulevard,
+  "Augustus Hawkins High School", 33.98689352636203, -118.28809332457882, boulevard,
+  "Vermont Square Park", 34.00025327505379, -118.2972922149193, boulevard,
+  "South Park Recreation Center", 33.997457650265595, -118.26774886549762, boulevard
 
   #### MLK East Locations ####
   # "Exposition Park", 34.01465919961802, -118.28749014509255, boulevard,
@@ -226,7 +225,7 @@ locations_sf = tribble(
 
 boulevard_outline <- st_union(boulevard_tracts) #%>%
   #st_transform(projection)
-boulevard_corridor <- st_read(file.path(file_path, boulevard, "maps", paste0(boulevard, "_corridor.shp"))) %>%
+boulevard_corridor <- st_read(file.path(file_path, boulevard, "maps", paste0(boulevard, "_blvd.shp"))) %>%
   st_transform(4326) 
 ```
 
@@ -415,9 +414,8 @@ crash_sf = get_non_acs_data(
   dataset_name = "crash",
   area = boulevard) %>% 
   mutate(crash_type = factor(crash_type, levels = c("Pedestrian involved severe crash",
-                                                    "Bicyclist involved severe crash",
-                                                    "Other vehicle severe crash")))
-  #filter(crash_type != "Other vehicle severe crash")
+                                                    "Bicyclist involved severe crash"))) %>% 
+  filter(crash_type != "Other vehicle severe crash")
 
 crash_full_sf = get_non_acs_data(
   base_path = file_path,
@@ -431,8 +429,7 @@ crash_full_sf = get_non_acs_data(
 hla_sf = get_non_acs_data(
   base_path = file_path,
   dataset_name = "hla",
-  area = boulevard) %>%
-  filter(!grepl("^625", Precinct))
+  area = boulevard) 
 
 ```
 
@@ -449,12 +446,12 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  xpad = 2000,
+  xpad = 4000,
   ypad = 1500,
-  scale_bar_position = 0.72,
-  compass_position = 0.69,
-  height = 4.5,
-  width = 6.25,
+  scale_bar_position = 0.66,
+  compass_position = 0.63,
+  height = 6.5,
+  width = 4.5,
   projection = projection,
   legend_title = "",
   #style = "cont",
@@ -473,12 +470,12 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  xpad = 2000,
+  xpad = 4000,
   ypad = 1500,
-  scale_bar_position = 0.72,
-  compass_position = 0.69,
-  height = 4.5,
-  width = 6.25,
+  scale_bar_position = 0.66,
+  compass_position = 0.63,
+  height = 6.5,
+  width = 4.5,
   projection = projection,
   legend_title = "",
   palette_colors = c("Senior Housing Development" = "#00447C"),
@@ -497,12 +494,12 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  xpad = 3000,
+  xpad = 5000,
   ypad = 1500,
   scale_bar_position = 0.70,
   compass_position = 0.67,
-  height = 4.5,
-  width = 6.5,
+  height = 6.5,
+  width = 5,
   projection = projection,
   legend_title = "Zoning",
   palette_colors = c(
@@ -528,12 +525,12 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  xpad = 2000,
+  xpad = 3000,
   ypad = 1500,
-  scale_bar_position = 0.64,
-  compass_position = 0.61,
-  height = 4.5,
-  width = 6.25,
+  scale_bar_position = 0.62,
+  compass_position = 0.59,
+  height = 6.5,
+  width = 4.5,
   projection = projection,
   legend_title = "Crashes",
   palette_colors = c("Pedestrian involved severe crash" = "#00447C",
@@ -676,7 +673,7 @@ disability_counts <- acs_tracts_boulevard |>
   select(ends_with(c("_difficulty"))) |>
   summarise(across(everything(), sum, na.rm = TRUE)) |>
   gather(key = "Disability", value = "Count") |>
-  mutate(percent = Count/ sum(6015) * 100,
+  mutate(percent = Count/ sum(19620) * 100,
          label = paste0(scales::comma(Count), " (", round(percent, 1), "%)"))
 
 
@@ -694,7 +691,7 @@ disability_counts <- acs_tracts_boulevard |>
       size.unit = "pt") +
     scale_fill_manual(values = c("#00447C", "#A7C539", "#F2B705", "#780032", "#e66a8c","#D9D9D9", "black")) +
     scale_x_discrete(labels = c(
-                                #"disability" = "Any Disabilty ",
+                                "disability" = "Any Disabilty ",
                                 "ambulatory_difficulty" = "Ambulatory", 
                                 "cognitive_difficulty" = "Cognitive", 
                                 "hearing_difficulty" = "Hearing", 
@@ -780,7 +777,8 @@ ggsave(filename = "crashes_bar.png",
 
 
 ## bar chart of HLA voting
-hla_all_city <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp")) %>%
+
+hla_all_city <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp")) %>% 
       st_make_valid() %>%
       st_transform(crs = 4326) %>%
       st_drop_geometry() %>% 
@@ -805,6 +803,54 @@ hla_combined <- bind_rows(hla_boulevard, hla_all_city) %>%
          area = factor(area, levels = c("Ohio Ave", "LA City")))
 
 
+hla_supplement <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+  filter(TYPE == "TOTAL") %>% 
+  summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
+  mutate(total_eligible_pop = sum(acs_city_la$B29001_001),
+         percent_registered = REGISTRATION/total_eligible_pop,
+         percent_reg_voted = `BALLOTS CAST`/ REGISTRATION,
+         yes_share = YES/`BALLOTS CAST`,
+         area = "LA City"
+           )
+
+hla_supplement_boulevard <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+  filter(TYPE == "TOTAL" & PRECINCT %in% hla_sf$Precinct) %>%
+  summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
+  mutate(total_eligible_pop = sum(acs_tracts_boulevard$B29001_001),
+         percent_registered = REGISTRATION/total_eligible_pop,
+         percent_reg_voted = `BALLOTS CAST`/ REGISTRATION,
+         yes_share = YES/`BALLOTS CAST`,
+         area = "MLK East"
+           )
+
+hla_supplement_combined <-  bind_rows(hla_supplement, hla_supplement_boulevard) %>% 
+  select(area, percent_registered, percent_reg_voted) %>% 
+  pivot_longer(cols = c(percent_registered, percent_reg_voted)) %>% 
+  mutate(variable = case_when(
+    name == "percent_registered" ~ "Percent of eligbile residents registered to vote",
+    name == "percent_reg_voted" ~ "Eligible voter participation" ),
+    variable = factor(variable, levels = c("Percent of eligbile residents registered to vote", "Eligible voter participation" )),
+    area = factor(area, levels = c("MLK East", "LA City")) )
+
+
+hla_participation_bar <- ggplot(hla_supplement_combined) +
+  geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
+  scale_fill_manual(values = c("LA City" = "#00447C", "MLK East" = "#A7C539")) +
+  geom_text(aes(x = variable, y = value, label =scales::percent(value, accuracy = 1), group = area),
+            position = position_dodge(width = 0.8),
+            vjust = -.5,
+            color = "black",
+            size = 8,
+            size.unit = "pt") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_urbn_print() +
+    labs(x = "", y = "") +
+    theme(
+      panel.grid.major.x = element_blank(),
+      text = element_text(family = "Arial", color = "black"))
+
+
+
 hla_bar <- ggplot(hla_combined) +
   geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
   scale_fill_manual(values = c("LA City" = "#00447C", "Ohio Ave" = "#A7C539")) +
@@ -822,6 +868,7 @@ hla_bar <- ggplot(hla_combined) +
       text = element_text(family = "Arial", color = "black"))
 
 hla_bar
+hla_participation_bar
 
 ggsave(filename = "hla_bar.png", 
        plot = hla_bar, 

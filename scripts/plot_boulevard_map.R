@@ -137,7 +137,15 @@ plot_boulevard_map = function(
         fill = fill_column,
         fill_alpha = 0.55,
         size = 0.5,
-        fill.legend = legend) 
+        fill.legend = legend) +
+        tm_text(
+          "Name",
+          size = 0.6,
+          col = "black",
+          options = opt_tm_text(just = "center"),
+          ymod = 1,
+          fontface = "bold",
+          fontfamily = "Calibri")
   }
   
 

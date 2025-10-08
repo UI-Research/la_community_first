@@ -20,7 +20,7 @@ get_non_acs_data = function(
   if (area == "hoover") primary_road_string = "HOOVER"
   
   if (area == "LA") file_path = file.path(base_path, "Data", "LA tracts", "LA_City_2020_Census_Tracts_.shp")
-  if (area != "LA") file_path = file.path(file_path, boulevard, "maps", str_c(boulevard, "_tracts.shp"))
+  if (area != "LA") file_path = file.path(file_path, boulevard, "maps", str_c(boulevard, "_buffer_tracts.shp"))
 
   tracts_sf = st_read(file_path, quiet = TRUE) %>%
     st_set_crs(4326) %>% 
