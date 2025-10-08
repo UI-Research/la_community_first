@@ -12,6 +12,7 @@ source(here("scripts", "plot_utility_functions.R"))
 #'
 #' @param df_boulevard A data frame containing ACS data for a specific boulevard.
 #' @param df_city A data frame containing ACS data for the entire city of Los Angeles.
+#' @param boulevard_name A string of the name of the boulevard of interest
 #' @param color A color palette 
 #' @param constructs A character vector of demographic or socioeconomic constructs to be plotted.
 #' @param denominators A character vector of column names in `df_boulevard` and `df_city` that will be used as denominators for calculating shares.
@@ -22,7 +23,8 @@ source(here("scripts", "plot_utility_functions.R"))
 #' @return A list of ggplot objects, each representing a comparison chart for a specific demographic or socioeconomic indicator.
 plot_comparison_charts = function(
     df_boulevard, 
-    df_city, 
+    df_city,
+    boulevard_name,
     color, 
     constructs, 
     denominators,
@@ -121,14 +123,16 @@ plot_comparison_charts = function(
   
   ####----English Speaking Ability----####
   english_vars <- list(
+    very_well = c("B16004_003", "B16004_025","B16004_047", "B16004_005", "B16004_010", "B16004_015", "B16004_020", "B16004_027", "B16004_032", "B16004_037", "B16004_042", "B16004_049", "B16004_054", "B16004_059", "B16004_064"),
     well = c("B16004_006", "B16004_011", "B16004_016", "B16004_021", "B16004_028", "B16004_033", "B16004_038", "B16004_043", "B16004_050", "B16004_055", "B16004_060", "B16004_065"),
     not_well = c("B16004_007", "B16004_012", "B16004_017", "B16004_022", "B16004_029", "B16004_034", "B16004_039", "B16004_044", "B16004_051", "B16004_056", "B16004_061", "B16004_066"),
     none =c("B16004_008", "B16004_013", "B16004_018", "B16004_023", "B16004_030", "B16004_035", "B16004_040", "B16004_045", "B16004_052", "B16004_057", "B16004_062", "B16004_067"))
   english_labels <- c(
+    "share_very_well" = "Native or Very Well",
     "share_well" = "Well",
     "share_not_well" = "Not well",
     "share_none" = "None")
-  english_bar_order <- c("Well", "Not well", "None")
+  english_bar_order <- c("Native or Very Well", "Well", "Not well", "None")
   
   ####----Primary Language----####
   #(we specifically care about the languages spoken for people who do not speak english well)
@@ -137,20 +141,34 @@ plot_comparison_charts = function(
     spanish = "C16001_005",
     korean = "C16001_020",
     chinese = "C16001_023",
-    other = c("C16001_008", "C16001_011", "C16001_014", "C16001_017", "C16001_026", "C16001_029", "C16001_032", "C16001_035", "C16001_038"))
+    #french = "C16001_008",
+    tagalog = "C16001_029",
+    #arabic = "C16001_035",
+    other = c("C16001_011",
+              "C16001_008",
+              "C16001_014",
+              "C16001_017", 
+              "C16001_026", 
+             #"C16001_029", 
+              "C16001_032",
+              "C16001_035", 
+              "C16001_038"))
   language_labels <- c(
     "share_spanish" = "Spanish",
     "share_korean" = "Korean",
     "share_chinese" = "Chinese",
+    "share_french" = "French",
+    "share_tagalog" = "Tagalog",
+    "share_arabic" = "Arabic",
     "share_other" = "Other languages")
-  language_bar_order <- c("Spanish", "Korean", "Chinese", "Other languages")
-  
+  language_bar_order <- c("Spanish", "Korean", "Chinese", "Tagalog", "Other languages")
+
   english_less_than_very_well_denominator_vars = language_vars %>% unlist() %>% as.character()
   
   ####----Device/Internet Access----####
   device_vars <- list(
-    no_smartphone = c("B28001_004", "B28001_008", "B28001_010"),
-    no_computer = c("B28001_006", "B28001_008", "B28001_010"), 
+    no_smartphone = c("B28001_004", "B28001_008", "B28001_010", "B28001_011"),
+    no_computer = c("B28001_006", "B28001_008", "B28001_010", "B28001_011"), 
     no_internet = "B28002_013")
   device_labels <- c(
     "share_no_smartphone"  = "No smartphones",
@@ -214,6 +232,22 @@ plot_comparison_charts = function(
     "share_severe_rent_burden" = "Severely rent burdened")
   rent_burden_bar_order <- c("Rent burdened", "Severely rent burdened")
   
+  rent_burden_denominator_vars <- c("B25070_001", "B25070_011")
+  
+  ####----Adult population in school----####
+  school_vars <- list(
+    in_school = c("B14007_015", "B14007_016", "B14007_017", "B14007_018"))
+  school_labels <- c(
+    "share_in_school"  = "Enrolled in school")
+  school_bar_order <- c("Enrolled in school")
+  
+  ####----Foreign born population----####
+  foreign_born_vars <- list(
+    foreign_born = c("B05006_001"))
+  foreign_born_labels <- c(
+    "share_foreign_born"  = "Foreign-born")
+  foreign_born_bar_order <- c("Foreign-born")
+  
   ####----Employment----####
   #difficult bc the denominators differ for computing different bars ((un)employment 
   #uses labor force, not in labor force uses total population)
@@ -236,14 +270,17 @@ plot_comparison_charts = function(
     "share_unemployed" = "Unemployed",
     "share_not_in_labor_force" = "Not in labor force")
   
+  employment_bar_order <- c("Employed", "Unemployed", "Not in labor force")
+  
   ####----Plotting Variables Iteratively----####
   plot_metadata = tibble(
     var_list = str_c(constructs, "_vars"),
     total_var = denominators,
     labels = str_c(constructs, "_labels"),
     group_order = str_c(constructs, "_bar_order"),
-    constructs = constructs)
-  
+    constructs = constructs,
+    boulevard_name = boulevard_name) 
+
   ## this iterates over each row in `plot_metadata` and applies each of the columns 
   ## from `plot_metadata` as arguments to the parameter of the same name in `map_variable()`
   results = pmap(
@@ -251,10 +288,12 @@ plot_comparison_charts = function(
     plot_indicator,
     df_boulevard = df_boulevard %>%
       st_drop_geometry() %>%
-      mutate(english_less_than_very_well_denominator = rowSums(select(., all_of(english_less_than_very_well_denominator_vars)), na.rm = TRUE)),
+      mutate(english_less_than_very_well_denominator = rowSums(select(., all_of(english_less_than_very_well_denominator_vars)), na.rm = TRUE),
+             rent_burden_denominator = .data[[rent_burden_denominator_vars[1]]] - .data[[rent_burden_denominator_vars[2]]]),
     df_city = df_city %>%
       st_drop_geometry() %>%
-      mutate(english_less_than_very_well_denominator = rowSums(select(., all_of(english_less_than_very_well_denominator_vars)), na.rm = TRUE)),
+      mutate(english_less_than_very_well_denominator = rowSums(select(., all_of(english_less_than_very_well_denominator_vars)), na.rm = TRUE),
+             rent_burden_denominator = .[[rent_burden_denominator_vars[1]]] - .[[rent_burden_denominator_vars[2]]]),
     save = save,
     file_extension = file_extension,
     outpath = outpath)
