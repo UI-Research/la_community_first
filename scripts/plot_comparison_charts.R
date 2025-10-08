@@ -307,3 +307,94 @@ plot_comparison_charts = function(
   
   return(results)
 }
+
+
+
+
+
+# ===== commute times of greater than 60 by mode ====================================
+
+
+# Use Urban Institute styling if available
+if (requireNamespace("urbnthemes", quietly = TRUE)) {
+  library(urbnthemes)
+  set_urbn_defaults(style = "print")  # same look as your other charts
+} else {
+  message("Tip: install.packages('remotes'); remotes::install_github('UrbanInstitute/urbnthemes')")
+}
+
+year <- 2023
+
+# 1) Pull B08134 for all LA County tracts (long format)
+b08134_long <- tidycensus::get_acs(
+  geography   = "tract",
+  state       = "06",     # CA
+  county      = "037",    # Los Angeles County
+  table       = "B08134",
+  year        = year,
+  survey      = "acs5",
+  cache_table = TRUE
+)
+
+# 2) Variable labels to parse mode/time
+var_labels <- tidycensus::load_variables(year, "acs5", cache = TRUE) |>
+  dplyr::filter(stringr::str_starts(name, "B08134_")) |>
+  dplyr::select(variable = name, label)
+
+# 3) Flags: Hoover tracts vs all LA City tracts (uses your existing helper)
+hoover_geoids <- get_acs_data(file_path, area = "Hoover", census_geography = "tract")$GEOID
+city_geoids   <- get_acs_data(file_path, area = "LA",     census_geography = "tract")$GEOID
+
+b08134_flagged <- b08134_long |>
+  dplyr::filter(GEOID %in% city_geoids) |>
+  dplyr::mutate(group = dplyr::if_else(GEOID %in% hoover_geoids, "Hoover", "City"))
+
+# 4) Summarize: percent with ≥60-minute commute by mode & group
+over60_bins <- c("60 to 89 minutes", "90 or more minutes")
+
+b08134_by_mode_group <- b08134_flagged |>
+  dplyr::left_join(var_labels, by = "variable") |>
+  tidyr::separate_wider_delim("label", "!!",
+                              names = c("lvl1","lvl2","rest"), too_few = "align_start"
+  ) |>
+  dplyr::mutate(rest = stringr::str_remove(rest, "^Total:\\s*!!")) |>
+  tidyr::separate_wider_delim("rest", "!!",
+                              names = c("mode_raw","time"), too_few = "start"
+  ) |>
+  dplyr::mutate(
+    mode = stringr::str_remove(mode_raw, ":$"),
+    time = stringr::str_remove(dplyr::coalesce(time, ""), ":$")
+  ) |>
+  dplyr::filter(!is.na(time), time != "") |>
+  dplyr::group_by(group, mode) |>
+  dplyr::summarise(
+    commuters_total  = sum(estimate, na.rm = TRUE),
+    commuters_over60 = sum(dplyr::if_else(time %in% over60_bins, estimate, 0), na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(
+    pct_over60 = 100 * commuters_over60 / commuters_total,
+    # optional label tidy
+    mode = mode |>
+      stringr::str_replace("^Car, truck, or van: ", "Car/truck/van – ") |>
+      stringr::str_replace("^Public transportation \\(excluding taxicab\\): ", "Transit – ") |>
+      stringr::str_replace("^Taxicab, motorcycle, bicycle, or other means$", "Taxi/motorcycle/bike/other")
+  )
+
+# 5) Plot (inherits Urban theme if set_urbn_defaults ran)
+p <- b08134_by_mode_group |>
+  ggplot2::ggplot(ggplot2::aes(x = reorder(mode, pct_over60), y = pct_over60, fill = group)) +
+  ggplot2::geom_col(position = "dodge") +
+  ggplot2::coord_flip() +
+  ggplot2::labs(
+    title = "Commute ≥60 minutes by mode",
+    subtitle = "Hoover tracts vs. all Los Angeles city tracts • ACS 2019–2023 (B08134)",
+    x = NULL, y = "Percent of commuters"
+  ) +
+  ggplot2::guides(fill = ggplot2::guide_legend(title = NULL))
+
+print(p)
+
+# 6) Save outputs
+ggplot2::ggsave("commute_over60_Hoover_vs_City.png", p, width = 9, height = 6, dpi = 300)
+readr::write_csv(b08134_by_mode_group, "commute_over60_Hoover_vs_City.csv")

@@ -4,6 +4,7 @@ library(sf)
 library(tmap)
 library(here)
 library(osmdata)
+library(tidylog)
 
 source(here("scripts", "get_acs_data.R"))
 source(here("scripts", "plot_utility_functions.R"))
@@ -79,7 +80,7 @@ comparison_charts = plot_comparison_charts(
   color = color_palette,
   constructs = plot_metadata$constructs,
   denominators = plot_metadata$denominators,
-  save = TRUE,
+  save = FALSE,
   outpath = file.path(file_path, boulevard, "Outputs"),
   file_extension = ".png")
 
@@ -757,7 +758,8 @@ ggsave(filename = "crashes_bar.png",
 
 
 ## bar chart of HLA voting
-hla_all_city <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp")) %>%
+
+hla_all_city <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp")) %>% 
       st_make_valid() %>%
       st_transform(crs = 4326) %>%
       st_drop_geometry() %>% 
@@ -782,6 +784,54 @@ hla_combined <- bind_rows(hla_boulevard, hla_all_city) %>%
          area = factor(area, levels = c("Santa Monica to Westwood", "LA City")))
 
 
+hla_supplement <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+  filter(TYPE == "TOTAL") %>% 
+  summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
+  mutate(total_eligible_pop = sum(acs_city_la$B29001_001),
+         percent_registered = REGISTRATION/total_eligible_pop,
+         percent_reg_voted = `BALLOTS CAST`/ REGISTRATION,
+         yes_share = YES/`BALLOTS CAST`,
+         area = "LA City"
+           )
+
+hla_supplement_boulevard <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+  filter(TYPE == "TOTAL" & PRECINCT %in% hla_sf$Precinct) %>%
+  summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
+  mutate(total_eligible_pop = sum(acs_tracts_boulevard$B29001_001),
+         percent_registered = REGISTRATION/total_eligible_pop,
+         percent_reg_voted = `BALLOTS CAST`/ REGISTRATION,
+         yes_share = YES/`BALLOTS CAST`,
+         area = "MLK East"
+           )
+
+hla_supplement_combined <-  bind_rows(hla_supplement, hla_supplement_boulevard) %>% 
+  select(area, percent_registered, percent_reg_voted) %>% 
+  pivot_longer(cols = c(percent_registered, percent_reg_voted)) %>% 
+  mutate(variable = case_when(
+    name == "percent_registered" ~ "Percent of eligbile residents registered to vote",
+    name == "percent_reg_voted" ~ "Eligible voter participation" ),
+    variable = factor(variable, levels = c("Percent of eligbile residents registered to vote", "Eligible voter participation" )),
+    area = factor(area, levels = c("MLK East", "LA City")) )
+
+
+hla_participation_bar <- ggplot(hla_supplement_combined) +
+  geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
+  scale_fill_manual(values = c("LA City" = "#00447C", "MLK East" = "#A7C539")) +
+  geom_text(aes(x = variable, y = value, label =scales::percent(value, accuracy = 1), group = area),
+            position = position_dodge(width = 0.8),
+            vjust = -.5,
+            color = "black",
+            size = 8,
+            size.unit = "pt") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_urbn_print() +
+    labs(x = "", y = "") +
+    theme(
+      panel.grid.major.x = element_blank(),
+      text = element_text(family = "Arial", color = "black"))
+
+
+
 hla_bar <- ggplot(hla_combined) +
   geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
   scale_fill_manual(values = c("LA City" = "#00447C", "Santa Monica to Westwood" = "#A7C539")) +
@@ -799,6 +849,7 @@ hla_bar <- ggplot(hla_combined) +
       text = element_text(family = "Arial", color = "black"))
 
 hla_bar
+hla_participation_bar
 
 ggsave(filename = "hla_bar.png", 
        plot = hla_bar, 

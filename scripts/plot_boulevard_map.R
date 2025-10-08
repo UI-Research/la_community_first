@@ -140,7 +140,15 @@ plot_boulevard_map = function(
         fill = fill_column,
         fill_alpha = 0.55,
         size = 0.5,
-        fill.legend = legend) 
+        fill.legend = legend) +
+        tm_text(
+          "Name",
+          size = 0.6,
+          col = "black",
+          options = opt_tm_text(just = "center"),
+          ymod = 1,
+          fontface = "bold",
+          fontfamily = "Calibri")
   }
   
 
@@ -151,10 +159,10 @@ plot_boulevard_map = function(
       tm_borders(col = "#9e400f", lwd = 2, lty = "dashed") +
     ## the boulevard
     tm_shape(boulevard_sf, bbox = bbox) +
-      tm_lines(col = "#F4AB0B", lwd = 4) +
+      tm_lines(col = "black", lwd = 2) +
     tm_add_legend(
       type = "lines",
-      col = c("#F4AB0B", "#9e400f"),
+      col = c("black", "#9e400f"),
       lty = c("solid", "dashed"),
       lwd = c(2, 2),
       labels = c("Project Site", "Study Area"),
