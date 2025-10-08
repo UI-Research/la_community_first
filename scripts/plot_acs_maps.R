@@ -14,6 +14,7 @@ source(here("scripts", "plot_boulevard_map.R"))
 #' @param legend_title The title for the legend in the map.
 #' @param xpad horizontal buffer for map bounding box
 #' @param ypad vertical buffer for map bounding box
+#' @param bins the number of bins to split the scale into
 #' @param scale_bar_position horizontal position of scale bar
 #' @param compass_position horizontal position of compass
 #' @param height height of saved plot
@@ -33,6 +34,7 @@ plot_acs_maps = function(
     legend_title,
     xpad,
     ypad,
+    bins,
     scale_bar_position = .72,
     compass_position = .70, 
     height, 
@@ -210,6 +212,7 @@ plot_acs_maps = function(
     streets_sf = streets_sf,
     xpad = xpad,
     ypad = ypad,
+    bins = bins,
     scale_bar_position = scale_bar_position,
     compass_position = compass_position,
     height = height,
