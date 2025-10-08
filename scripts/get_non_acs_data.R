@@ -40,13 +40,13 @@ get_non_acs_data = function(
     }
   
   if (dataset_name == "zoning") {
-    ## these data are large, so we process and save to disk
-    ## if they already are available on disk, we read from there rather than reprocessing
+    # these data are large, so we process and save to disk
+    # if they already are available on disk, we read from there rather than reprocessing
     if (area %in% st_layers(file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"))$name) {
-      
+
       result = st_read(
-        file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"), 
-        layer = area, 
+        file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"),
+        layer = area,
         quiet = TRUE) %>%
         st_transform(4326) %>%
         st_make_valid() %>%
@@ -60,19 +60,20 @@ get_non_acs_data = function(
             "Public")))
 
     } else {
-      
-      result1 <- st_read(file.path(base_path, "Data/Zoning/Zoning.shp")) %>%
+    browser()
+      result <- st_read(file.path(base_path, "Data/Zoning/Zoning.shp")) %>%
         st_transform(4326) %>%
         st_make_valid() 
       buffer_area = tracts_sf %>% st_bbox() %>% st_as_sfc()
       
-      result2 = result1 %>%
+
+      result2 <-  result %>%
         st_filter(buffer_area %>% st_transform(4326)) %>%
         st_intersection(tracts_sf %>% st_transform(4326)) %>%
         janitor::clean_names() %>%
         mutate(
           zoning_category = case_when(
-            category %in% c("Commercial", "Manufacturing", "Industrial", "Commercial-Mixed", "Industrial-Mixed") ~ "Commercial or Industrial",
+            category %in% c("Commercial", "Manufacturing", "Industrial", "Commercial-Mixed", "Industrial-Mixed", "Hybrid Industrial") ~ "Commercial or Industrial",
             category %in% c("Public", "Public Facilities") ~ "Public",
             category %in% c("Parking", "Freeway") ~ "Highways or Parking",
             category %in% c("Agricultural", "Open Space") ~ "Agricultural or Open Space",
@@ -100,7 +101,8 @@ get_non_acs_data = function(
         delete_layer = TRUE,
         quiet = TRUE)
       
-      result = result3 }}
+      result = result3 }
+  }
   
   if (dataset_name == "h_and_t") {
     result = read_csv(file.path(base_path, "Data/htaindex2022_data_tracts_06.csv")) %>%

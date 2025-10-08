@@ -175,33 +175,33 @@ plot_boulevard_map = function(
       text.color = "black",   
       title.fontface = "bold"
     ) +
-    # tm_add_legend(
-    #   type = "symbols",
-    #   fill = "black",
-    #   size = 0.5,
-    #   labels = "Points of Interest",
-    #   frame.lwd = 0,
-    #   position = tm_pos_on_top("left", "top"),
-    #   bg.color = "white",    
-    #   bg.alpha = 0.9,
-    #   title.size = .8,        
-    #   title.color = "black",  
-    #   text.color = "black",   
-    #   title.fontface = "bold"
-    # ) +
-    # tm_shape(
-    #   locations_sf %>% mutate(name = str_wrap(name, 20)), bbox = bbox) +
-    #   tm_dots(
-    #     col = "black",
-    #     size = 0.4) +
-    #   tm_text(
-    #     "name",
-    #     size = 0.6,
-    #     col = "black",
-    #     options = opt_tm_text(just = "center"),
-    #     ymod = 1.5,
-    #     fontface = "bold",
-    #     fontfamily = "Calibri") +
+    tm_add_legend(
+      type = "symbols",
+      fill = "black",
+      size = 0.5,
+      labels = "Points of Interest",
+      frame.lwd = 0,
+      position = tm_pos_on_top("left", "top"),
+      bg.color = "white",
+      bg.alpha = 0.9,
+      title.size = .8,
+      title.color = "black",
+      text.color = "black",
+      title.fontface = "bold"
+    ) +
+    tm_shape(
+      locations_sf %>% mutate(name = str_wrap(name, 20)), bbox = bbox) +
+      tm_dots(
+        col = "black",
+        size = 0.4) +
+    tm_text(
+      "name",
+      size = 0.6,
+      col = "black",
+      options = opt_tm_text(just = "center"),
+      ymod = 1.5,
+      fontface = "bold",
+      fontfamily = "Calibri") +
     tm_shape(
       streets_sf, bbox = bbox) +
       tm_text(

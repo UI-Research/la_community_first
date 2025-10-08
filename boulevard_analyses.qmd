@@ -25,14 +25,14 @@ options(
 Set a boulevard variable
 
 ```{r}
-boulevard = "mlk"
+boulevard = "hoover"
 boulevard_tracts = file.path(file_path, boulevard, "maps", str_c(boulevard, "_buffer_tracts.shp")) %>%
-  st_read(quiet = TRUE) #%>% 
-  #st_set_crs(4326)
-
+  st_read(quiet = TRUE) %>% 
+  st_set_crs(4326)
 ```
 
 Obtaining ACS data
+
 ```{r}
 acs_tracts_la = get_acs_data(
     file_path = file_path, 
@@ -48,11 +48,12 @@ acs_city_la = get_acs_data(
   census_geography = "place") 
 ```
 
-Plotting comparison charts 
+Plotting comparison charts
+
 ```{r, fig.width = 6.5, fig.height = 2.5}
 color_palette = c(
   "LA City" = "#00447c",
-  "MLK East" = "#A7c539")
+  "Hoover" = "#A7c539")
 
 plot_metadata = tribble(
   ~constructs, ~denominators,
@@ -75,7 +76,7 @@ plot_metadata = tribble(
 comparison_charts = plot_comparison_charts(
   df_boulevard = acs_tracts_boulevard, 
   df_city = acs_city_la,
-  boulevard_name = "MLK East",
+  boulevard_name = "Hoover",
   color = color_palette,
   constructs = plot_metadata$constructs,
   denominators = plot_metadata$denominators,
@@ -88,8 +89,8 @@ comparison_charts
 
 ```
 
-
 Prepare spatial layers
+
 ```{r}
 projection = 2229
 
@@ -125,41 +126,47 @@ streets_sf = tribble(
   # "Hoover St", 34.03191105597345, -118.28495893090334, 90, boulevard,
   # "Harbor Fwy", 34.05418379708543, -118.25980368140354, 55, boulevard
   
-  #### Hoover Locations ####
-  # "MLK Jr Blvd", 34.01114719258918, -118.26536648634915, 0, boulevard,
-  # "Vernon Ave", 34.003854692348405, -118.26536648634915, 0, boulevard,
-  # "Slauson Ave", 33.98932307117704, -118.26523319659992, 0, boulevard,
-  # "Florence Ave", 33.974733696872036, -118.25616655173909, 0, boulevard,
-  # "Manchester Ave", 33.960118221849065, -118.25607145690896, 0, boulevard,
-  # "Harbor Fwy", 33.982781626478186, -118.28060176708684, 270, boulevard,
-  # "Vermont Ave", 33.98235972870656, -118.29168835018301, 90, boulevard,
-  # "Normandie Ave", 33.98235972870656, -118.30030677623152, 90, boulevard,
-  # "Van Ness Ave", 33.983371941772745, -118.317750099191, 90, boulevard,
-  # "Crenshaw Blvd", 33.98297019442496, -118.33092846920148, 90, boulevard,
-  # "Main St", 33.982436755767004, -118.27400241679408, 270, boulevard,
-  # "Avalon Blvd", 33.98253230870111, -118.26521583140891, 270, boulevard,
-  # "Exposition Blvd", 34.018306424628975, -118.30579458465892, 0, boulevard
+  ### Hoover Locations ####
+  "MLK Jr Blvd", 34.01114719258918, -118.26536648634915, 0, boulevard,
+  "Vernon Ave", 34.003854692348405, -118.26536648634915, 0, boulevard,
+  "Slauson Ave", 33.98932307117704, -118.26523319659992, 0, boulevard,
+  "Florence Ave", 33.974733696872036, -118.25616655173909, 0, boulevard,
+  "Manchester Ave", 33.960118221849065, -118.25607145690896, 0, boulevard,
+  "Harbor Fwy", 33.982781626478186, -118.28060176708684, 270, boulevard,
+  "Vermont Ave", 33.98235972870656, -118.29168835018301, 90, boulevard,
+  "Normandie Ave", 33.98235972870656, -118.30030677623152, 90, boulevard,
+  "Van Ness Ave", 33.983371941772745, -118.317750099191, 90, boulevard,
+  "Crenshaw Blvd", 33.98297019442496, -118.33092846920148, 90, boulevard,
+  "Main St", 33.982436755767004, -118.27400241679408, 270, boulevard,
+  "Avalon Blvd", 33.98253230870111, -118.26521583140891, 270, boulevard,
+  "Exposition Blvd", 34.018306424628975, -118.30579458465892, 0, boulevard
   
   #### MLK East Locations ####
-  "Vernon Ave", 34.003854692348405, -118.26536648634915, 0, boulevard,
-  "Harbor Fwy", 33.997457650265595, -118.28060176708684, 90, boulevard,
-  "Vermont Ave", 33.997457650265595, -118.29157543208511, 90, boulevard,
-  "Main St", 33.997457650265595, -118.27400241679408, 90, boulevard,
-  "Avalon Blvd", 33.997457650265595, -118.26521583140891, 90, boulevard,
-  "S Central Ave", 33.997457650265595, -118.25654362606636, 90, boulevard,
-  "Compton Ave", 33.997457650265595, -118.24782315230883, 90, boulevard,
-  "Alameda St", 33.997457650265595, -118.23893194279209, 90, boulevard,
-  "Exposition Blvd", 34.018306424628975, -118.29579458465892, 0, boulevard,
-  "W Jefferson Blvd", 34.015349134822415, -118.26539713983982, 330, boulevard,
-  "W Adams Blvd", 34.02171394087482, -118.26149019886697, 330, boulevard,
-  "I-10 Highway", 34.02963863308693, -118.2562396832706, 330, boulevard,
-  #"39th St", 34.01262605342662, -118.27807699596822, 330, boulevard, 
- # "Broadway Pl", 34.015257502298404, -118.27484158663349, 65, boulevard,
-  "Figueroa St", 34.00740067778371, -118.28274935189532, 90, boulevard,
-  "Hooper Ave" , 34.00740067778371, -118.25214778113816, 90, boulevard,
-  #"E MLK Jr Blvd", 34.01116901275043, -118.26802369330964, 0, boulevard
+  # "Vernon Ave", 34.003854692348405, -118.26536648634915, 0, boulevard,
+  # "Harbor Fwy", 33.997457650265595, -118.28060176708684, 90, boulevard,
+  # "Vermont Ave", 33.997457650265595, -118.29157543208511, 90, boulevard,
+  # "Main St", 33.997457650265595, -118.27400241679408, 90, boulevard,
+  # "Avalon Blvd", 33.997457650265595, -118.26521583140891, 90, boulevard,
+  # "S Central Ave", 33.997457650265595, -118.25654362606636, 90, boulevard,
+  # "Compton Ave", 33.997457650265595, -118.24782315230883, 90, boulevard,
+  # "Alameda St", 33.997457650265595, -118.23893194279209, 90, boulevard,
+  # "Exposition Blvd", 34.018306424628975, -118.29579458465892, 0, boulevard,
+  # "W Jefferson Blvd", 34.015349134822415, -118.26539713983982, 330, boulevard,
+  # "W Adams Blvd", 34.02171394087482, -118.26149019886697, 330, boulevard,
+  # "I-10 Highway", 34.02963863308693, -118.2562396832706, 330, 
   
-  
+  #### SaMo Locations ####
+  # "Wilshire Blvd", 34.03599619998233, -118.47751443335834, 46, boulevard,
+  # "I-405 Highway", 34.062111891101544, -118.45732644292302, 306, boulevard,
+  # "I-10 Highway", 34.02836949394677, -118.44887737870634, 10, boulevard,
+  # "San Vicente Blvd", 34.05190061515859, -118.47460501575662, 18, boulevard,
+  # "Santa Monica Blvd", 34.033194769667645, -118.4743223448754, 46, boulevard,
+  # "Colorado Ave", 34.03062380737115, -118.47117687859794, 46, boulevard,
+  # #"Arizona Ave", 34.03464128056424, -118.47590358425937, 47, boulevard,
+  # "Ohio Ave", 34.04930514322892, -118.4485050408507, 41, boulevard,
+  # "Westwood Blvd", 34.05404853759078, -118.44074349431331, 306, boulevard,
+  # "Bundy Dr", 34.03743794455129, -118.45977952761376, 320, boulevard
+
   
   
   ) %>%
@@ -181,20 +188,29 @@ locations_sf = tribble(
   # "Normandie Recreation Center", 34.044543, -118.299765, boulevard
   
   #### Hoover Locations ####
-  # "Exposition Park", 34.01465919961802, -118.28749014509255, boulevard,
-  # "Harvard Park", 33.984241239976996, -118.30467543777576, boulevard,
-  # "Algin Sutton Recreation Center", 33.95628624786266, -118.28592530502922, boulevard,
-  # "Augustus Hawkins High School", 33.98689352636203, -118.28809332457882, boulevard,
-  # "Vermont Square Park", 34.00025327505379, -118.2972922149193, boulevard,
-  # "South Park Recreation Center", 33.997457650265595, -118.26774886549762, boulevard
+  "Exposition Park", 34.01465919961802, -118.28749014509255, boulevard,
+  "Harvard Park", 33.984241239976996, -118.30467543777576, boulevard,
+  "Algin Sutton Recreation Center", 33.95628624786266, -118.28592530502922, boulevard,
+  "Augustus Hawkins High School", 33.98689352636203, -118.28809332457882, boulevard,
+  "Vermont Square Park", 34.00025327505379, -118.2972922149193, boulevard,
+  "South Park Recreation Center", 33.997457650265595, -118.26774886549762, boulevard
 
   #### MLK East Locations ####
-  "Exposition Park", 34.01465919961802, -118.28749014509255, boulevard,
-  #"South Park Recreation Center", 33.997457650265595, -118.26774886549762, boulevard,  
+  # "Exposition Park", 34.01465919961802, -118.28749014509255, boulevard,
+  # #"South Park Recreation Center", 33.997457650265595, -118.26774886549762, boulevard,  
   # "Thomas Jefferson High School", 34.00997417280373, -118.25116074723486, boulevard,
   # "Gilbert Lindsay Recreation Center", 34.00740067778371, -118.26759083665975, boulevard,
-  #"Santee High School", 34.028448683424934, -118.2634537575853, boulevard,
-  "University of Southern California", 34.02250540388042, -118.28501499219414, boulevard
+  # #"Santee High School", 34.028448683424934, -118.2634537575853, boulevard,
+  # "University of Southern California", 34.02250540388042, -118.28501499219414, boulevard
+  
+  #### SaMo Locations ####
+  # "UCLA", 34.06993161179595, -118.44678711417353, boulevard,
+  # "West LA VA Medical Center", 34.05247315379336, -118.45295447084322, boulevard,
+  # "University High School", 34.04561998108219, -118.46096278532994, boulevard,
+  # #"Beverly Hills High School", 34.061242565789044, -118.41023652161807, boulevard,
+  # "Stoner Park", 34.03820077425739, -118.4539619445094, boulevard,
+  # "The Getty", 34.07715346855072, -118.47442918126463, boulevard,
+  # "Santa Monica Airport", 34.016609712728666, -118.45033595223472, boulevard
   
   ) %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326) #%>%
@@ -206,8 +222,8 @@ boulevard_corridor <- st_read(file.path(file_path, boulevard, "maps", paste0(bou
   st_transform(4326) 
 ```
 
-
 Plot chloropleths
+
 ```{r, fig.width = 6.5, fig.height = 4.5}
 # "share_hearing_diff", "Disability, Hearing",
 # "share_vision_diff", "Disability, Vision",
@@ -240,18 +256,19 @@ plot_acs_maps(
   streets_sf = streets_sf,
   fill_column = plot_metadata$fill_column,
   legend_title = plot_metadata$legend_title,
-  xpad = 2500,
-  ypad = 1750,
+  xpad = 4500,
+  ypad = 3750,
   scale_bar_position = .74,
   compass_position = .72, 
   height = 4.5,
   width = 6.5,
-  save = FALSE,
+  save = TRUE,
   outpath = file.path(file_path, boulevard, "Outputs"),
   file_extension = ".png")
 ```
 
 Non-ACS data
+
 ```{r}
 affordable_housing_sf = get_non_acs_data(
   base_path = file_path,
@@ -278,27 +295,35 @@ h_and_t_sf = boulevard_tracts %>%
     get_non_acs_data(
       base_path = file_path,
       dataset_name = "h_and_t",
-      area = boulevard))
+      area = boulevard)) %>% 
+  filter(str_starts(GEOID, c("0603726|0603798")))
 
 crash_sf = get_non_acs_data(
   base_path = file_path,
   dataset_name = "crash",
   area = boulevard) %>% 
+  mutate(crash_type = factor(crash_type, levels = c("Pedestrian involved severe crash",
+                                                    "Bicyclist involved severe crash"))) %>% 
   filter(crash_type != "Other vehicle severe crash")
 
 crash_full_sf = get_non_acs_data(
   base_path = file_path,
   dataset_name = "crash_full",
-  area = boulevard) %>% 
-  filter(crash_type != "Other vehicle severe crash")
+  area = boulevard) %>%
+    mutate(crash_type = factor(crash_type, levels = c("Pedestrian involved severe crash",
+                                                    "Bicyclist involved severe crash",
+                                                    "Other vehicle severe crash")))
+  #filter(crash_type != "Other vehicle severe crash")
 
 hla_sf = get_non_acs_data(
   base_path = file_path,
   dataset_name = "hla",
-  area = boulevard)
+  area = boulevard) 
+
 ```
 
 Non-ACS maps
+
 ```{r, fig.width = 6.5, fig.height = 4.5}
 
 ## affordable housing
@@ -310,12 +335,12 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  xpad = 2000,
+  xpad = 4000,
   ypad = 1500,
-  scale_bar_position = 0.72,
-  compass_position = 0.69,
-  height = 4.5,
-  width = 6.25,
+  scale_bar_position = 0.66,
+  compass_position = 0.63,
+  height = 6.5,
+  width = 4.5,
   projection = projection,
   legend_title = "",
   #style = "cont",
@@ -334,12 +359,12 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  xpad = 2000,
+  xpad = 4000,
   ypad = 1500,
-  scale_bar_position = 0.72,
-  compass_position = 0.69,
-  height = 4.5,
-  width = 6.25,
+  scale_bar_position = 0.66,
+  compass_position = 0.63,
+  height = 6.5,
+  width = 4.5,
   projection = projection,
   legend_title = "",
   palette_colors = c("Senior Housing Development" = "#00447C"),
@@ -358,12 +383,12 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  xpad = 3000,
+  xpad = 5000,
   ypad = 1500,
-  scale_bar_position = 0.68,
-  compass_position = 0.65,
-  height = 4.25,
-  width = 6.25,
+  scale_bar_position = 0.70,
+  compass_position = 0.67,
+  height = 6.5,
+  width = 5,
   projection = projection,
   legend_title = "Zoning",
   palette_colors = c(
@@ -389,12 +414,12 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  xpad = 2000,
+  xpad = 3000,
   ypad = 1500,
-  scale_bar_position = 0.64,
-  compass_position = 0.61,
-  height = 4.5,
-  width = 6.25,
+  scale_bar_position = 0.62,
+  compass_position = 0.59,
+  height = 6.5,
+  width = 4.5,
   projection = projection,
   legend_title = "Crashes",
   palette_colors = c("Pedestrian involved severe crash" = "#00447C",
@@ -466,7 +491,7 @@ plot_boulevard_map(
   locations_sf = locations_sf,
   study_area_outline_sf = boulevard_outline,
   streets_sf = streets_sf,
-  xpad = 2000,
+  xpad = 000,
   ypad = 1500,
   height = 4.5,
   width = 6.5,
@@ -482,8 +507,8 @@ plot_boulevard_map(
 
 
   bbox <- st_bbox(boulevard_corridor)
-  xpad = 0.018
-  ypad = 0.018
+  xpad = 0.028
+  ypad = 0.02
     
   ## Add padding to x or y direction
   bbox["xmin"] <- bbox["xmin"] - xpad
@@ -576,6 +601,7 @@ tmap_save(map2, file = here(file_path, boulevard, "Outputs", "study_area_map.png
 ```
 
 Table 1: Top Countries for Foreign-born Study Area Residents
+
 ```{r}
 acs_tracts_boulevard %>%
   st_drop_geometry %>%
@@ -592,6 +618,10 @@ acs_tracts_boulevard %>%
       variable == "B05006_049" ~ "China",
       variable == "B05006_074" ~ "Phillipines",
       variable == "B05006_159" ~ "Honduras",
+      variable == "B05006_080" ~ "Armenia",
+      variable == "B05006_061" ~ "Iran",
+      variable == "B05006_050" ~ "China",
+     
       TRUE ~ NA_character_)) %>%
   summarize(
     .by = country, 
@@ -600,9 +630,6 @@ acs_tracts_boulevard %>%
   arrange(desc(estimate)) %>%
   mutate(share = round((estimate / estimate[country == "Table universe"]) * 100, digits = 0))
 ```
-
-
-
 
 ```{r Other charts}
 
@@ -627,7 +654,7 @@ disability_counts <- acs_tracts_boulevard |>
   select(ends_with(c("_difficulty"))) |>
   summarise(across(everything(), sum, na.rm = TRUE)) |>
   gather(key = "Disability", value = "Count") |>
-  mutate(percent = Count/ sum(10703) * 100,
+  mutate(percent = Count/ sum(19620) * 100,
          label = paste0(scales::comma(Count), " (", round(percent, 1), "%)"))
 
 
@@ -645,7 +672,7 @@ disability_counts <- acs_tracts_boulevard |>
       size.unit = "pt") +
     scale_fill_manual(values = c("#00447C", "#A7C539", "#F2B705", "#780032", "#e66a8c","#D9D9D9", "black")) +
     scale_x_discrete(labels = c(
-                                #"disability" = "Any Disabilty ",
+                                "disability" = "Any Disabilty ",
                                 "ambulatory_difficulty" = "Ambulatory", 
                                 "cognitive_difficulty" = "Cognitive", 
                                 "hearing_difficulty" = "Hearing", 
@@ -745,16 +772,16 @@ hla_all_city <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp")) %
          area = "LA City")
 
 hla_boulevard <- hla_sf %>% 
-  st_drop_geometry() #%>%
+  st_drop_geometry() %>%
   summarise(across(starts_with("hla"), sum, na.rm = T)) %>% 
   mutate(hla_affirmative_vote_share = hla_affirmative_vote_count/hla_total_vote_count,
-         area = "MLK East")
+         area = "Santa Monica to Westwood")
 
 hla_combined <- bind_rows(hla_boulevard, hla_all_city) %>%
   select(area, hla_affirmative_vote_share) %>% 
   pivot_longer(cols = c(hla_affirmative_vote_share)) %>% 
   mutate(variable = "Share of affirmative votes",
-         area = factor(area, levels = c("MLK East", "LA City")))
+         area = factor(area, levels = c("Santa Monica to Westwood", "LA City")))
 
 
 hla_supplement <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
@@ -807,7 +834,7 @@ hla_participation_bar <- ggplot(hla_supplement_combined) +
 
 hla_bar <- ggplot(hla_combined) +
   geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
-  scale_fill_manual(values = c("LA City" = "#00447C", "MLK East" = "#A7C539")) +
+  scale_fill_manual(values = c("LA City" = "#00447C", "Santa Monica to Westwood" = "#A7C539")) +
   geom_text(aes(x = variable, y = value, label =scales::percent(value, accuracy = 1), group = area),
             position = position_dodge(width = 0.8),
             vjust = -.5,
@@ -830,6 +857,55 @@ ggsave(filename = "hla_bar.png",
        height = 3.6,
        width = 6.84,
        dpi = 1000)
+
+
+hla_supplement <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+  filter(TYPE == "TOTAL") %>% 
+  summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
+  mutate(total_eligible_pop = sum(acs_city_la$B29001_001),
+         percent_registered = REGISTRATION/total_eligible_pop,
+         percent_reg_voted = `BALLOTS CAST`/ REGISTRATION,
+         yes_share = YES/`BALLOTS CAST`,
+         area = "LA City"
+           )
+
+hla_supplement_boulevard <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+  filter(TYPE == "TOTAL" & PRECINCT %in% hla_sf$Precinct) %>%
+  summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
+  mutate(total_eligible_pop = sum(acs_tracts_boulevard$B29001_001),
+         percent_registered = REGISTRATION/total_eligible_pop,
+         percent_reg_voted = `BALLOTS CAST`/ REGISTRATION,
+         yes_share = YES/`BALLOTS CAST`,
+         area = "Hoover"
+           )
+
+hla_supplement_combined <-  bind_rows(hla_supplement, hla_supplement_boulevard) %>% 
+  select(area, percent_registered, percent_reg_voted) %>% 
+  pivot_longer(cols = c(percent_registered, percent_reg_voted)) %>% 
+  mutate(variable = case_when(
+    name == "percent_registered" ~ "Percent of eligbile residents registered to vote",
+    name == "percent_reg_voted" ~ "Eligible voter participation" ),
+    variable = factor(variable, levels = c("Percent of eligbile residents registered to vote", "Eligible voter participation" )),
+    area = factor(area, levels = c("Hoover", "LA City")) )
+
+
+hla_participation_bar <- ggplot(hla_supplement_combined) +
+  geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
+  scale_fill_manual(values = c("LA City" = "#00447C", "Hoover" = "#A7C539")) +
+  geom_text(aes(x = variable, y = value, label =scales::percent(value, accuracy = 1), group = area),
+            position = position_dodge(width = 0.8),
+            vjust = -.5,
+            color = "black",
+            size = 8,
+            size.unit = "pt") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_urbn_print() +
+    labs(x = "", y = "") +
+    theme(
+      panel.grid.major.x = element_blank(),
+      text = element_text(family = "Arial", color = "black"))
+
+hla_participation_bar
 
 ggsave(filename = "hla_participation_bar.png", 
        plot = hla_participation_bar, 
@@ -998,10 +1074,37 @@ sum(h_and_t_sf$population * h_and_t_sf$t_ami) / sum(h_and_t_sf$population)
 
 
 
+
+buffer_area = boulevard_tracts %>% st_bbox() %>% st_as_sfc()
+
+result1 <- samo_test %>%
+        st_transform(4326) %>%
+        st_make_valid() 
+
+result2 = result1 %>%
+        st_filter(buffer_area %>% st_transform(4326)) %>%
+        st_intersection(boulevard_tracts %>% st_transform(4326)) %>%
+        janitor::clean_names() %>%
+  mutate(zoning_category = case_when(
+            zoning %in% c("MUB", "HMU", "MUBL", "OC", "CAC", "CCS", "IC", "MUC", "NC") ~ "Commercial or Industrial",
+            zoning %in% c("OS", "PL", "BTV") ~ "Public",
+            #zoning %in% c("Parking", "Freeway") ~ "Highways or Parking",
+            #zoning %in% c("Agricultural", "Open Space") ~ "Agricultural or Open Space",
+            zoning %in% c("R2", "R3", "R4", "RMH") ~ "Multi-family Residential",
+            zoning %in% c("R1") ~ "Single-family Residential",
+            TRUE ~ zoning) %>%
+            factor(
+              levels = c(
+                "Single-family Residential", "Multi-family Residential", "Public",
+                "Agricultural or Open Space", "Commercial or Industrial", 
+                "Highways or Parking")))
+
+
+
+
+sum(acs_tracts_boulevard$B14007_017, acs_tracts_boulevard$B14007_018) / sum(acs_tracts_boulevard$B14007_001)
+
+
+
+
 ```
-
-
-
-
-
-

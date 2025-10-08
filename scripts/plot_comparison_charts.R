@@ -141,18 +141,21 @@ plot_comparison_charts = function(
     spanish = "C16001_005",
     korean = "C16001_020",
     chinese = "C16001_023",
-    #french = "C16001_008",
-    tagalog = "C16001_029",
+    french = "C16001_008",
+    #tagalog = "C16001_029",
     #arabic = "C16001_035",
+    #russian = "C16001_014",
+    other_indo = "C16001_017",
     other = c("C16001_011",
-              "C16001_008",
+             # "C16001_008",
               "C16001_014",
-              "C16001_017", 
-              "C16001_026", 
-             #"C16001_029", 
+             # "C16001_017",
+              "C16001_026",
+              "C16001_029",
               "C16001_032",
-              "C16001_035", 
-              "C16001_038"))
+              "C16001_035",
+              "C16001_038")
+    )
   language_labels <- c(
     "share_spanish" = "Spanish",
     "share_korean" = "Korean",
@@ -160,8 +163,10 @@ plot_comparison_charts = function(
     "share_french" = "French",
     "share_tagalog" = "Tagalog",
     "share_arabic" = "Arabic",
+    "share_russian" = "Russian",
+    "share_other_indo" = "Other Indo-European",
     "share_other" = "Other languages")
-  language_bar_order <- c("Spanish", "Korean", "Chinese", "Tagalog", "Other languages")
+  language_bar_order <- c("Spanish", "Other Indo-European", "Chinese", "Korean", "French", "Other languages")
 
   english_less_than_very_well_denominator_vars = language_vars %>% unlist() %>% as.character()
   
