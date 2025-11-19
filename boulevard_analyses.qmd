@@ -26,7 +26,7 @@ source(here("scripts", "get_non_acs_data.R"))
 ## Set working directory and file paths
 ## Adjust this to set file_path to direct to whichever folder you have the repo working out of
 username <- getwd() %>% str_split("\\/") %>% unlist() %>% .[3]
-file_path <- file.path("C:", "Users", username, "Box", "LA Transit project", "Social Climate Analysis")
+file_path <- file.path(here())
 
 options(
   tigris_use_cache = TRUE,
@@ -417,8 +417,7 @@ h_and_t_sf = boulevard_tracts %>%
     get_non_acs_data(
       base_path = file_path,
       dataset_name = "h_and_t",
-      area = boulevard)) %>% 
-  filter(str_starts(GEOID, c("0603726|0603798")))
+      area = boulevard)) 
 
 crash_sf = get_non_acs_data(
   base_path = file_path,
@@ -813,16 +812,16 @@ hla_boulevard <- hla_sf %>%
   st_drop_geometry() %>%
   summarise(across(starts_with("hla"), sum, na.rm = T)) %>% 
   mutate(hla_affirmative_vote_share = hla_affirmative_vote_count/hla_total_vote_count,
-         area = "Ohio Ave")
+         area = "Hoover St") ## adjust boulevard name as needed
 
 hla_combined <- bind_rows(hla_boulevard, hla_all_city) %>%
   select(area, hla_affirmative_vote_share) %>% 
   pivot_longer(cols = c(hla_affirmative_vote_share)) %>% 
   mutate(variable = "Share of affirmative votes",
-         area = factor(area, levels = c("Ohio Ave", "LA City")))
+         area = factor(area, levels = c("Hoover St", "LA City"))) ## adjust boulevard name as needed
 
 
-hla_supplement <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+hla_supplement <- read_csv(file.path(file_path, "raw_data/Measure HLA Vote/hla_participation_data.csv")) %>% 
   filter(TYPE == "TOTAL") %>% 
   summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
   mutate(total_eligible_pop = sum(acs_city_la$B29001_001),
@@ -832,14 +831,14 @@ hla_supplement <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_parti
          area = "LA City"
            )
 
-hla_supplement_boulevard <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+hla_supplement_boulevard <- read_csv(file.path(file_path, "raw_data/Measure HLA Vote/hla_participation_data.csv")) %>% 
   filter(TYPE == "TOTAL" & PRECINCT %in% hla_sf$Precinct) %>%
   summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
   mutate(total_eligible_pop = sum(acs_tracts_boulevard$B29001_001),
          percent_registered = REGISTRATION/total_eligible_pop,
          percent_reg_voted = `BALLOTS CAST`/ REGISTRATION,
          yes_share = YES/`BALLOTS CAST`,
-         area = "MLK East"
+         area = "Hoover St" ## adjust boulevard name as needed
            )
 
 hla_supplement_combined <-  bind_rows(hla_supplement, hla_supplement_boulevard) %>% 
@@ -849,12 +848,12 @@ hla_supplement_combined <-  bind_rows(hla_supplement, hla_supplement_boulevard) 
     name == "percent_registered" ~ "Percent of eligbile residents registered to vote",
     name == "percent_reg_voted" ~ "Eligible voter participation" ),
     variable = factor(variable, levels = c("Percent of eligbile residents registered to vote", "Eligible voter participation" )),
-    area = factor(area, levels = c("MLK East", "LA City")) )
+    area = factor(area, levels = c("Hoover St", "LA City")) ) ## adjust boulevard name as needed
 
 
 hla_participation_bar <- ggplot(hla_supplement_combined) +
   geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
-  scale_fill_manual(values = c("LA City" = "#00447C", "MLK East" = "#A7C539")) +
+  scale_fill_manual(values = c("LA City" = "#00447C", "Hoover St" = "#A7C539")) + ## adjust boulevard name as needed
   geom_text(aes(x = variable, y = value, label =scales::percent(value, accuracy = 1), group = area),
             position = position_dodge(width = 0.8),
             vjust = -.5,
@@ -872,7 +871,7 @@ hla_participation_bar <- ggplot(hla_supplement_combined) +
 
 hla_bar <- ggplot(hla_combined) +
   geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
-  scale_fill_manual(values = c("LA City" = "#00447C", "Ohio Ave" = "#A7C539")) +
+  scale_fill_manual(values = c("LA City" = "#00447C", "Hoover St" = "#A7C539")) + ## adjust boulevard name as needed
   geom_text(aes(x = variable, y = value, label =scales::percent(value, accuracy = 1), group = area),
             position = position_dodge(width = 0.8),
             vjust = -.5,
@@ -897,7 +896,7 @@ ggsave(filename = "hla_bar.png",
        dpi = 1000)
 
 
-hla_supplement <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+hla_supplement <- read_csv(file.path(file_path, "raw_data/Measure HLA Vote/hla_participation_data.csv")) %>% 
   filter(TYPE == "TOTAL") %>% 
   summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
   mutate(total_eligible_pop = sum(acs_city_la$B29001_001),
@@ -907,14 +906,14 @@ hla_supplement <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_parti
          area = "LA City"
            )
 
-hla_supplement_boulevard <- read_csv(file.path(file_path, "Data/Measure HLA Vote/hla_participation_data.csv")) %>% 
+hla_supplement_boulevard <- read_csv(file.path(file_path, "raw_data/Measure HLA Vote/hla_participation_data.csv")) %>% 
   filter(TYPE == "TOTAL" & PRECINCT %in% hla_sf$Precinct) %>%
   summarise(across(c(REGISTRATION, `BALLOTS CAST`, YES, NO), sum, na.rm = T)) %>%
   mutate(total_eligible_pop = sum(acs_tracts_boulevard$B29001_001),
          percent_registered = REGISTRATION/total_eligible_pop,
          percent_reg_voted = `BALLOTS CAST`/ REGISTRATION,
          yes_share = YES/`BALLOTS CAST`,
-         area = "Ohio Ave"
+         area = "Hoover St" ## adjust boulevard name as needed
            )
 
 hla_supplement_combined <-  bind_rows(hla_supplement, hla_supplement_boulevard) %>% 
@@ -924,12 +923,12 @@ hla_supplement_combined <-  bind_rows(hla_supplement, hla_supplement_boulevard) 
     name == "percent_registered" ~ "Percent of eligbile residents registered to vote",
     name == "percent_reg_voted" ~ "Eligible voter participation" ),
     variable = factor(variable, levels = c("Percent of eligbile residents registered to vote", "Eligible voter participation" )),
-    area = factor(area, levels = c("Ohio Ave", "LA City")) )
+    area = factor(area, levels = c("Hoover St", "LA City")) ) ## adjust boulevard name as needed
 
 
 hla_participation_bar <- ggplot(hla_supplement_combined) +
   geom_col(aes(x = variable, y = value, fill = area), position = position_dodge(width = 0.8)) + 
-  scale_fill_manual(values = c("LA City" = "#00447C", "Ohio Ave" = "#A7C539")) +
+  scale_fill_manual(values = c("LA City" = "#00447C", "Hoover St" = "#A7C539")) + ## adjust boulevard name as needed
   geom_text(aes(x = variable, y = value, label =scales::percent(value, accuracy = 1), group = area),
             position = position_dodge(width = 0.8),
             vjust = -.5,
@@ -1044,7 +1043,7 @@ commute_mode_age_boulevard <- acs_tracts_boulevard |>
   mutate(age_total = sum(count)) |>
   ungroup() |>
   mutate(percent = count/age_total,
-         area = "Ohio Ave")
+         area = "Hoover St")
 
 
 commute_age_mode_area <- ggplot(commute_mode_age_boulevard) +
@@ -1087,7 +1086,7 @@ ggsave(filename = "area_commute_age_mode_bar.png",
 
 commute_age_combined <- commute_mode_age_boulevard %>% 
   bind_rows(commute_mode_age_city) %>% 
-  mutate(area = factor(area, levels = c("Ohio Ave", "LA City")))
+  mutate(area = factor(area, levels = c("Hoover St", "LA City")))
 
 commute_age_mode_combined <- ggplot(commute_age_combined) +
   geom_col_pattern(aes(x = mode, y = percent, fill = mode, pattern = area), 

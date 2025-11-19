@@ -19,7 +19,7 @@ get_non_acs_data = function(
   if (area == "mlk") primary_road_string = "MARTIN LUTHER|MLK"
   if (area == "hoover") primary_road_string = "HOOVER"
   
-  if (area == "LA") file_path = file.path(base_path, "Data", "LA tracts", "LA_City_2020_Census_Tracts_.shp")
+  if (area == "LA") file_path = file.path(base_path, "raw_data", "LA tracts", "LA_City_2020_Census_Tracts_.shp")
   if (area != "LA") file_path = file.path(file_path, boulevard, "maps", str_c(boulevard, "_buffer_tracts.shp"))
 
   tracts_sf = st_read(file_path, quiet = TRUE) %>%
@@ -27,13 +27,13 @@ get_non_acs_data = function(
     st_make_valid()
 
   if (dataset_name == "senior_housing") {
-    result <- st_read(file.path(base_path, "Data/Senior_Housing-shp/Senior_Housing.shp")) %>%
+    result <- st_read(file.path(base_path, "raw_data/Senior_Housing-shp/Senior_Housing.shp")) %>%
       st_transform(4326) %>%
       st_make_valid() %>%
       st_filter(tracts_sf) }
   
   if (dataset_name == "affordable_housing") {
-    result <- st_read(file.path(base_path, "Data/Affordable_Housing_Development/Affordable_Housing_Development.shp")) %>%
+    result <- st_read(file.path(base_path, "raw_data/Affordable_Housing_Development/Affordable_Housing_Development.shp")) %>%
        st_transform(4326) %>%
        st_make_valid() %>%
        st_filter(tracts_sf) 
@@ -42,10 +42,10 @@ get_non_acs_data = function(
   if (dataset_name == "zoning") {
     # these data are large, so we process and save to disk
     # if they already are available on disk, we read from there rather than reprocessing
-    if (area %in% st_layers(file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"))$name) {
+    if (area %in% st_layers(file.path(base_path, "raw_data", "Zoning", "zoning_simplified.gpkg"))$name) {
 
       result = st_read(
-        file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"),
+        file.path(base_path, "raw_data", "Zoning", "zoning_simplified.gpkg"),
         layer = area,
         quiet = TRUE) %>%
         st_transform(4326) %>%
@@ -61,7 +61,7 @@ get_non_acs_data = function(
 
     } else {
     browser()
-      result <- st_read(file.path(base_path, "Data/Zoning/Zoning.shp")) %>%
+      result <- st_read(file.path(base_path, "raw_data/Zoning/Zoning.shp")) %>%
         st_transform(4326) %>%
         st_make_valid() 
       buffer_area = tracts_sf %>% st_bbox() %>% st_as_sfc()
@@ -95,7 +95,7 @@ get_non_acs_data = function(
       
       st_write(
         result3, 
-        dsn = file.path(base_path, "Data", "Zoning", "zoning_simplified.gpkg"), 
+        dsn = file.path(base_path, "raw_data", "Zoning", "zoning_simplified.gpkg"), 
         layer = area, 
         delete_dsn = FALSE, 
         delete_layer = TRUE,
@@ -105,7 +105,7 @@ get_non_acs_data = function(
   }
   
   if (dataset_name == "h_and_t") {
-    result = read_csv(file.path(base_path, "Data/htaindex2022_data_tracts_06.csv")) %>%
+    result = read_csv(file.path(base_path, "raw_data/htaindex2022_data_tracts_06.csv")) %>%
       rename(GEOID = tract) %>%
       mutate(GEOID = gsub('"', '', GEOID) %>% str_pad(width = 11, pad = "0", side = "left")) %>%
       filter(GEOID %in% tracts_sf$GEOID) %>% 
@@ -200,7 +200,7 @@ get_non_acs_data = function(
   }
 
   if (dataset_name == "hla") {
-    result = st_read(file.path(base_path, "Data/Measure HLA Vote/HLA.shp")) %>%
+    result = st_read(file.path(base_path, "raw_data/Measure HLA Vote/HLA.shp")) %>%
       st_make_valid() %>%
       st_transform(crs = 4326) %>%
       st_filter(tracts_sf) %>%

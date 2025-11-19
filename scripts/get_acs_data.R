@@ -77,7 +77,7 @@ get_acs_data <- function(
       select(GEOID), 
       by = "GEOID")
   
-  la_city_tracts <- st_read(file.path(file_path, "Data", "LA tracts", "LA_City_2020_Census_Tracts_.shp")) %>%
+  la_city_tracts <- st_read(file.path(file_path, "raw_data", "LA tracts", "LA_City_2020_Census_Tracts_.shp")) %>%
     transmute(GEOID = paste0("06037", CT20))
   
   if (area_type == "boulevard") {
