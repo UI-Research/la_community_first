@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?><metadata>
+    <idinfo>
+        <citation>
+            <citeinfo>
+                <title>Map</title>
+            </citeinfo>
+        </citation>
+        <descript>
+            <abstract>In 1962, The City of Los Angeles Cultural Heritage Ordinance was enacted and made possible the designation of buildings and sites as individual local landmarks, called “Historic-Cultural Monuments” in Los Angeles. The City currently has over 1,000 Historic-Cultural Monuments, providing official recognition and protection for Los Angeles’ most significant and cherished historic resources. Refresh Rate: Monthly</abstract>
+            <purpose>Designated Historic-Cultural Monuments</purpose>
+        </descript>
+        <keywords>
+            <theme>
+                <themekt>None</themekt>
+                <themekey>Historic-Cultural Monuments</themekey>
+                <themekey>HCM</themekey>
+                <themekey>OHR</themekey>
+                <themekey>City Planning</themekey>
+                <themekey>Cultural Heritage Commission</themekey>
+                <themekey>Office of Historic Preservation</themekey>
+            </theme>
+        </keywords>
+        <accconst>None</accconst>
+        <useconst>PLEASE READ THIS AGREEMENT CAREFULLY BEFORE USING THIS WEB SITE. BY USING THIS WEB SITE, YOU ARE CONSENTING TO BE OBLIGATED AND BECOME A PARTY TO THIS AGREEMENT. IF YOU DO NOT AGREE TO THE TERMS AND CONDITIONS BELOW YOU SHOULD NOT ACCESS OR USE THIS WEB SITE. This web site is presented as a public service that provides Internet accessibility to information provided by the City of Los Angeles, Department of City Planning and to other City, State, and Federal information. Due to the dynamic nature of the information contained within this web site and the reliance on information from outside sources, the City of Los Angeles, Department of City Planning does not guarantee the accuracy or reliability of the information transmitted from this web site. This web site and all materials contained on it are distributed and transmitted on an as is and as available basis without any warranties of any kind, whether expressed or implied. The City of Los Angeles, Department of City Planning is not responsible for any special, indirect, incidental, punitive, or consequential damages that may arise from the use of, or the inability to use the web site and/or materials contained on the web site, or that result from mistakes, omissions, interruptions, deletion of files, errors, defects, delays in operation, or transmission, or any failure of performance, whether the material is provided by the City of Los Angeles or outside source. The City of Los Angeles, Department of City Planning reserves the right to modify, update, or alter these Terms and Conditions of use at any time. Your continued use of this Site constitutes your agreement to comply with such modifications. The information provided on this web site, and its links to other related web sites, are provided as a courtesy to our web site visitors only, and are in no manner an endorsement, recommendation, or approval of any person, any product, or any service contained on any other web site. The City of Los Angeles, Department of City Planning is neither responsible nor liable for any viruses or other contamination of your system nor for any delays, inaccuracies, errors, or omissions arising out of your use of this web site, or with respect to the material contained on the web site, including without limitation, any material posted on the web site. This Agreement shall be governed by, construed, and enforced in accordance with the laws of the State of California as applied to agreements made and to be performed entirely therein. Any action brought to enforce the Agreement and/or in connection with this web site shall be brought in either the state or federal courts in the County of Los Angeles County, State of California.</useconst>
+        <datacred>Los Angeles City Planning</datacred>
+    </idinfo>
+    <metainfo>
+        <metstdn>FGDC Content Standard for Digital Geospatial Metadata</metstdn>
+        <metstdv>FGDC-STD-001-1998</metstdv>
+        <mettc>local time</mettc>
+    </metainfo>
+</metadata>
