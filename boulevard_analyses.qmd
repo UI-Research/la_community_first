@@ -36,7 +36,7 @@ options(
 Set a boulevard variable
 
 ```{r}
-boulevard = "hoover"
+boulevard = "hoover" ## SET THIS TO THE STUDY AREA YOU ARE INTERESTED IN; MUST MATCH FOLDER NAME EXACTLY
 boulevard_tracts = file.path(file_path, boulevard, "maps", str_c(boulevard, "_buffer_tracts.shp")) %>%
   st_read(quiet = TRUE) %>% 
   st_set_crs(4326)
@@ -657,7 +657,7 @@ acs_tracts_boulevard %>%
     .by = country, 
     estimate = sum(estimate, na.rm = TRUE)) %>%
   filter(!is.na(country), estimate > 1000) %>% ## Only keeping countries with more than 1000 residents, can adjust if needed
-  arrange(desc(estimate)) #%>%
+  arrange(desc(estimate)) %>%
   mutate(share = round((estimate / estimate[country == "Table universe"]) * 100, digits = 0))
 ```
 
@@ -796,7 +796,7 @@ ggsave(filename = "crashes_bar.png",
 
 ## bar chart of HLA voting
 
-hla_all_city <- st_read(file.path(file_path, "Data/Measure HLA Vote/HLA.shp")) %>% 
+hla_all_city <- st_read(file.path(file_path, "raw_data/Measure HLA Vote/HLA.shp")) %>% 
       st_make_valid() %>%
       st_transform(crs = 4326) %>%
       st_drop_geometry() %>% 
@@ -1181,39 +1181,6 @@ sum(acs_city_la$B14007_017 + acs_city_la$B14007_018) / sum(acs_city_la$B14007_00
 
 ##transportation cost burden
 sum(h_and_t_sf$population * h_and_t_sf$t_ami) / sum(h_and_t_sf$population)
-
-
-
-
-
-buffer_area = boulevard_tracts %>% st_bbox() %>% st_as_sfc()
-
-result1 <- samo_test %>%
-        st_transform(4326) %>%
-        st_make_valid() 
-
-result2 = result1 %>%
-        st_filter(buffer_area %>% st_transform(4326)) %>%
-        st_intersection(boulevard_tracts %>% st_transform(4326)) %>%
-        janitor::clean_names() %>%
-  mutate(zoning_category = case_when(
-            zoning %in% c("MUB", "HMU", "MUBL", "OC", "CAC", "CCS", "IC", "MUC", "NC") ~ "Commercial or Industrial",
-            zoning %in% c("OS", "PL", "BTV") ~ "Public",
-            #zoning %in% c("Parking", "Freeway") ~ "Highways or Parking",
-            #zoning %in% c("Agricultural", "Open Space") ~ "Agricultural or Open Space",
-            zoning %in% c("R2", "R3", "R4", "RMH") ~ "Multi-family Residential",
-            zoning %in% c("R1") ~ "Single-family Residential",
-            TRUE ~ zoning) %>%
-            factor(
-              levels = c(
-                "Single-family Residential", "Multi-family Residential", "Public",
-                "Agricultural or Open Space", "Commercial or Industrial", 
-                "Highways or Parking")))
-
-
-
-
-sum(acs_tracts_boulevard$B14007_017, acs_tracts_boulevard$B14007_018) / sum(acs_tracts_boulevard$B14007_001)
 
 
 ##pop over 16 enrolled in school
